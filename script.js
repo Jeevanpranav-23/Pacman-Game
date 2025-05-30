@@ -8,15 +8,15 @@ const boardHeight = rowCount * tileSize;
 let context;
 
 // Game elements
-let blueGhostImage;
-let orangeGhostImage;
-let pinkGhostImage;
-let redGhostImage;
-let pacmanUpImage;
-let pacmanDownImage;
-let pacmanLeftImage;
-let pacmanRightImage;
-let wallImage;
+let blueGhostImage = new Image();
+let orangeGhostImage = new Image();
+let pinkGhostImage = new Image();
+let redGhostImage = new Image();
+let pacmanUpImage = new Image();
+let pacmanDownImage = new Image();
+let pacmanLeftImage = new Image();
+let pacmanRightImage = new Image();
+let wallImage = new Image();
 
 // Game state
 const tileMap = [
@@ -56,9 +56,9 @@ let gameOver = false;
 let gameStarted = false;
 let difficulty = "medium";
 let playerName = "Player";
-let ghostSpeed = tileSize / 4; // Default medium speed
+let ghostSpeed = tileSize / 4;
 let gameInterval;
-let levelTimeLimit = 120; // seconds
+let levelTimeLimit = 120;
 let timeLeft = levelTimeLimit;
 let timerInterval;
 
@@ -104,17 +104,11 @@ window.onload = function() {
     document.getElementById("close-scores-btn").addEventListener("click", closeHighScores);
     
     // Mobile controls
-    upBtn.addEventListener("touchstart", () => movePacman({code: "ArrowUp"}));
-    downBtn.addEventListener("touchstart", () => movePacman({code: "ArrowDown"}));
-    leftBtn.addEventListener("touchstart", () => movePacman({code: "ArrowLeft"}));
-    rightBtn.addEventListener("touchstart", () => movePacman({code: "ArrowRight"}));
+    upBtn.addEventListener("touchstart", () => movePacman({code: "ArrowUp"}), {passive: false});
+    downBtn.addEventListener("touchstart", () => movePacman({code: "ArrowDown"}), {passive: false});
+    leftBtn.addEventListener("touchstart", () => movePacman({code: "ArrowLeft"}), {passive: false});
+    rightBtn.addEventListener("touchstart", () => movePacman({code: "ArrowRight"}), {passive: false});
     
-    // Prevent default touch behavior
-    [upBtn, downBtn, leftBtn, rightBtn].forEach(btn => {
-        btn.addEventListener("touchend", (e) => e.preventDefault());
-        btn.addEventListener("touchmove", (e) => e.preventDefault());
-    });
-
     // Load images
     loadImages();
     
@@ -125,26 +119,15 @@ window.onload = function() {
 };
 
 function loadImages() {
-    wallImage = new Image();
-    wallImage.src = "./wall.png";
-
-    blueGhostImage = new Image();
-    blueGhostImage.src = "./blueGhost.png";
-    orangeGhostImage = new Image();
-    orangeGhostImage.src = "./orangeGhost.png";
-    pinkGhostImage = new Image();
-    pinkGhostImage.src = "./pinkGhost.png";
-    redGhostImage = new Image();
-    redGhostImage.src = "./redGhost.png";
-
-    pacmanUpImage = new Image();
-    pacmanUpImage.src = "./pacmanUp.png";
-    pacmanDownImage = new Image();
-    pacmanDownImage.src = "./pacmanDown.png";
-    pacmanLeftImage = new Image();
-    pacmanLeftImage.src = "./pacmanLeft.png";
-    pacmanRightImage = new Image();
-    pacmanRightImage.src = "./pacmanRight.png";
+    wallImage.src = "wall.png";
+    blueGhostImage.src = "blueGhost.png";
+    orangeGhostImage.src = "orangeGhost.png";
+    pinkGhostImage.src = "pinkGhost.png";
+    redGhostImage.src = "redGhost.png";
+    pacmanUpImage.src = "pacmanUp.png";
+    pacmanDownImage.src = "pacmanDown.png";
+    pacmanLeftImage.src = "pacmanLeft.png";
+    pacmanRightImage.src = "pacmanRight.png";
 }
 
 function loadMap() {
@@ -156,45 +139,37 @@ function loadMap() {
         for (let c = 0; c < columnCount; c++) {
             const row = tileMap[r];
             const tileMapChar = row[c];
-
             const x = c * tileSize;
             const y = r * tileSize;
 
             if (tileMapChar == 'X') {
-                const wall = new Block(wallImage, x, y, tileSize, tileSize);
-                walls.add(wall);  
+                walls.add(new Block(wallImage, x, y, tileSize, tileSize));
             }
             else if (tileMapChar == 'b') {
-                const ghost = new Block(blueGhostImage, x, y, tileSize, tileSize);
-                ghosts.add(ghost);
+                ghosts.add(new Block(blueGhostImage, x, y, tileSize, tileSize));
             }
             else if (tileMapChar == 'o') {
-                const ghost = new Block(orangeGhostImage, x, y, tileSize, tileSize);
-                ghosts.add(ghost);
+                ghosts.add(new Block(orangeGhostImage, x, y, tileSize, tileSize));
             }
             else if (tileMapChar == 'p') {
-                const ghost = new Block(pinkGhostImage, x, y, tileSize, tileSize);
-                ghosts.add(ghost);
+                ghosts.add(new Block(pinkGhostImage, x, y, tileSize, tileSize));
             }
             else if (tileMapChar == 'r') {
-                const ghost = new Block(redGhostImage, x, y, tileSize, tileSize);
-                ghosts.add(ghost);
+                ghosts.add(new Block(redGhostImage, x, y, tileSize, tileSize));
             }
             else if (tileMapChar == 'P') {
                 pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
             }
             else if (tileMapChar == ' ') {
-                const food = new Block(null, x + 14, y + 14, 4, 4);
-                foods.add(food);
+                foods.add(new Block(null, x + 14, y + 14, 4, 4));
             }
         }
     }
 }
 
 function update() {
-    if (gameOver) {
-        return;
-    }
+    if (gameOver) return;
+    
     move();
     draw();
 }
@@ -202,26 +177,26 @@ function update() {
 function draw() {
     context.clearRect(0, 0, board.width, board.height);
     
-    // Draw pacman
-    context.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height);
-    
-    // Draw ghosts
-    for (let ghost of ghosts.values()) {
-        context.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height);
-    }
-    
     // Draw walls
-    for (let wall of walls.values()) {
+    walls.forEach(wall => {
         context.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height);
-    }
+    });
 
     // Draw food
     context.fillStyle = "white";
-    for (let food of foods.values()) {
+    foods.forEach(food => {
         context.fillRect(food.x, food.y, food.width, food.height);
-    }
+    });
 
-    // Update game info displays
+    // Draw ghosts
+    ghosts.forEach(ghost => {
+        context.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height);
+    });
+
+    // Draw pacman
+    context.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height);
+
+    // Update displays
     scoreDisplay.textContent = `SCORE: ${score}`;
     livesDisplay.textContent = `LIVES: ${lives}`;
     levelDisplay.textContent = `LEVEL: ${level}`;
@@ -230,83 +205,93 @@ function draw() {
 }
 
 function move() {
+    // Move pacman
     pacman.x += pacman.velocityX;
     pacman.y += pacman.velocityY;
 
-    // Check wall collisions
-    for (let wall of walls.values()) {
+    // Wall collision for pacman
+    let pacmanHitWall = false;
+    walls.forEach(wall => {
         if (collision(pacman, wall)) {
-            pacman.x -= pacman.velocityX;
-            pacman.y -= pacman.velocityY;
-            break;
+            pacmanHitWall = true;
         }
+    });
+    
+    if (pacmanHitWall) {
+        pacman.x -= pacman.velocityX;
+        pacman.y -= pacman.velocityY;
     }
 
-    // Check ghost collisions
-    for (let ghost of ghosts.values()) {
+    // Ghost movement and collision
+    ghosts.forEach(ghost => {
+        // Move ghost
+        ghost.x += ghost.velocityX;
+        ghost.y += ghost.velocityY;
+
+        // Wall collision for ghost
+        let ghostHitWall = false;
+        walls.forEach(wall => {
+            if (collision(ghost, wall)) {
+                ghostHitWall = true;
+            }
+        });
+
+        if (ghostHitWall || ghost.x <= 0 || ghost.x + ghost.width >= boardWidth) {
+            ghost.x -= ghost.velocityX;
+            ghost.y -= ghost.velocityY;
+            ghost.updateDirection(directions[Math.floor(Math.random() * 4)]);
+        }
+
+        // Ghost-pacman collision
         if (collision(ghost, pacman)) {
-            lives -= 1;
-            if (lives == 0) {
+            lives--;
+            if (lives <= 0) {
                 gameOver = true;
                 endGame(false);
                 return;
             }
             resetPositions();
         }
+    });
 
-        if (ghost.y == tileSize * 9 && ghost.direction != 'U' && ghost.direction != 'D') {
-            ghost.updateDirection('U');
-        }
-
-        ghost.x += ghost.velocityX;
-        ghost.y += ghost.velocityY;
-        for (let wall of walls.values()) {
-            if (collision(ghost, wall) || ghost.x <= 0 || ghost.x + ghost.width >= boardWidth) {
-                ghost.x -= ghost.velocityX;
-                ghost.y -= ghost.velocityY;
-                const newDirection = directions[Math.floor(Math.random() * 4)];
-                ghost.updateDirection(newDirection);
-            }
-        }
-    }
-
-    // Check food collision
-    let foodEaten = null;
-    for (let food of foods.values()) {
+    // Food collection
+    foods.forEach(food => {
         if (collision(pacman, food)) {
-            foodEaten = food;
+            foods.delete(food);
             score += 10;
-            break;
         }
-    }
-    foods.delete(foodEaten);
+    });
 
     // Level completion
-    if (foods.size == 0) {
+    if (foods.size === 0) {
         levelComplete();
     }
 }
 
 function movePacman(e) {
-    if (gameOver || !gameStarted) {
-        return;
-    }
+    if (gameOver || !gameStarted) return;
 
-    if (e.code == "ArrowUp" || e.code == "KeyW") {
-        pacman.updateDirection('U');
-        pacman.image = pacmanUpImage;
-    }
-    else if (e.code == "ArrowDown" || e.code == "KeyS") {
-        pacman.updateDirection('D');
-        pacman.image = pacmanDownImage;
-    }
-    else if (e.code == "ArrowLeft" || e.code == "KeyA") {
-        pacman.updateDirection('L');
-        pacman.image = pacmanLeftImage;
-    }
-    else if (e.code == "ArrowRight" || e.code == "KeyD") {
-        pacman.updateDirection('R');
-        pacman.image = pacmanRightImage;
+    switch(e.code) {
+        case "ArrowUp":
+        case "KeyW":
+            pacman.updateDirection('U');
+            pacman.image = pacmanUpImage;
+            break;
+        case "ArrowDown":
+        case "KeyS":
+            pacman.updateDirection('D');
+            pacman.image = pacmanDownImage;
+            break;
+        case "ArrowLeft":
+        case "KeyA":
+            pacman.updateDirection('L');
+            pacman.image = pacmanLeftImage;
+            break;
+        case "ArrowRight":
+        case "KeyD":
+            pacman.updateDirection('R');
+            pacman.image = pacmanRightImage;
+            break;
     }
 }
 
@@ -321,11 +306,10 @@ function resetPositions() {
     pacman.reset();
     pacman.velocityX = 0;
     pacman.velocityY = 0;
-    for (let ghost of ghosts.values()) {
+    ghosts.forEach(ghost => {
         ghost.reset();
-        const newDirection = directions[Math.floor(Math.random() * 4)];
-        ghost.updateDirection(newDirection);
-    }
+        ghost.updateDirection(directions[Math.floor(Math.random() * 4)]);
+    });
 }
 
 function levelComplete() {
@@ -334,16 +318,11 @@ function levelComplete() {
     clearInterval(timerInterval);
     startTimer();
     
-    // Increase difficulty slightly each level
-    ghostSpeed = Math.min(ghostSpeed + 1, tileSize / 2); // Cap at maximum speed
+    // Increase difficulty
+    ghostSpeed = Math.min(ghostSpeed + 1, tileSize / 2);
     
     loadMap();
     resetPositions();
-    
-    // Update ghost speeds
-    for (let ghost of ghosts.values()) {
-        ghost.updateVelocity();
-    }
 }
 
 function startGame() {
@@ -355,7 +334,7 @@ function startGame() {
     lives = 3;
     level = 1;
     
-    // Set difficulty-based parameters
+    // Set difficulty
     switch(difficulty) {
         case "easy":
             ghostSpeed = tileSize / 5;
@@ -376,8 +355,8 @@ function startGame() {
     resetPositions();
     
     // Start game loop
-    if (gameInterval) clearInterval(gameInterval);
-    gameInterval = setInterval(update, 50);
+    clearInterval(gameInterval);
+    gameInterval = setInterval(update, 1000/20); // 20 FPS
     
     // Start timer
     startTimer();
@@ -405,18 +384,11 @@ function endGame(won) {
     clearInterval(gameInterval);
     clearInterval(timerInterval);
     
-    if (won) {
-        winMessage.textContent = `You won! Final Score: ${score}`;
-        winScreen.style.display = "block";
-        gameOverlay.style.display = "flex";
-    } else {
-        winMessage.textContent = `Game Over! Final Score: ${score}`;
-        winScreen.style.display = "block";
-        gameOverlay.style.display = "flex";
-    }
+    winMessage.textContent = won ? `You won! Final Score: ${score}` : `Game Over! Final Score: ${score}`;
+    winScreen.style.display = "block";
+    gameOverlay.style.display = "flex";
     
     saveHighScore();
-    showHighScores();
 }
 
 function restartGame() {
@@ -431,7 +403,6 @@ function returnToMainMenu() {
 
 function saveHighScore() {
     let scores = JSON.parse(localStorage.getItem("pacmanHighScores")) || [];
-    
     scores.push({
         name: playerName,
         score: score,
@@ -439,10 +410,8 @@ function saveHighScore() {
         date: new Date().toLocaleDateString()
     });
     
-    // Sort by score (descending) and keep top 10
     scores.sort((a, b) => b.score - a.score);
     scores = scores.slice(0, 10);
-    
     localStorage.setItem("pacmanHighScores", JSON.stringify(scores));
 }
 
@@ -469,11 +438,7 @@ function showHighScores() {
 
 function closeHighScores() {
     highScoresTable.style.display = "none";
-    if (!gameStarted) {
-        gameOverlay.style.display = "flex";
-    } else {
-        gameOverlay.style.display = "none";
-    }
+    gameOverlay.style.display = gameStarted ? "none" : "flex";
 }
 
 function showStartScreen() {
@@ -499,13 +464,16 @@ function showNameScreen() {
     nameScreen.style.display = "block";
 }
 
-// Event listeners for difficulty buttons
+// Difficulty buttons
 document.querySelectorAll(".difficulty-btn").forEach(btn => {
     btn.addEventListener("click", function() {
         difficulty = this.dataset.difficulty;
         showNameScreen();
     });
 });
+
+// Keyboard controls
+document.addEventListener("keyup", movePacman);
 
 class Block {
     constructor(image, x, y, width, height) {
@@ -514,57 +482,43 @@ class Block {
         this.y = y;
         this.width = width;
         this.height = height;
-
         this.startX = x;
         this.startY = y;
-
         this.direction = 'R';
         this.velocityX = 0;
         this.velocityY = 0;
     }
 
     updateDirection(direction) {
-        const prevDirection = this.direction;
         this.direction = direction;
         this.updateVelocity();
-        this.x += this.velocityX;
-        this.y += this.velocityY;
-        
-        for (let wall of walls.values()) {
-            if (collision(this, wall)) {
-                this.x -= this.velocityX;
-                this.y -= this.velocityY;
-                this.direction = prevDirection;
-                this.updateVelocity();
-                return;
-            }
-        }
     }
 
     updateVelocity() {
-        if (this.direction == 'U') {
-            this.velocityX = 0;
-            this.velocityY = -ghostSpeed;
-        }
-        else if (this.direction == 'D') {
-            this.velocityX = 0;
-            this.velocityY = ghostSpeed;
-        }
-        else if (this.direction == 'L') {
-            this.velocityX = -ghostSpeed;
-            this.velocityY = 0;
-        }
-        else if (this.direction == 'R') {
-            this.velocityX = ghostSpeed;
-            this.velocityY = 0;
+        switch(this.direction) {
+            case 'U':
+                this.velocityX = 0;
+                this.velocityY = -ghostSpeed;
+                break;
+            case 'D':
+                this.velocityX = 0;
+                this.velocityY = ghostSpeed;
+                break;
+            case 'L':
+                this.velocityX = -ghostSpeed;
+                this.velocityY = 0;
+                break;
+            case 'R':
+                this.velocityX = ghostSpeed;
+                this.velocityY = 0;
+                break;
         }
     }
 
     reset() {
         this.x = this.startX;
         this.y = this.startY;
+        this.velocityX = 0;
+        this.velocityY = 0;
     }
 }
-
-// Keyboard controls
-document.addEventListener("keyup", movePacman);
