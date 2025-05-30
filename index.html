@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Pac-Man</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: black;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                font-family: 'Courier New', monospace;
+            }
+
+            #game-container {
+                position: relative;
+            }
+
+            #board {
+                background-color: black;
+                display: block;
+                margin: 0 auto;
+            }
+
+            #score-display {
+                color: white;
+                display: flex;
+                justify-content: space-between;
+                padding: 10px;
+                font-size: 18px;
+                background-color: #000;
+            }
+
+            #lives-display {
+                position: absolute;
+                bottom: -40px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 10px;
+            }
+
+            .life {
+                width: 24px;
+                height: 24px;
+                background-image: url('pacmanRight.png');
+                background-size: contain;
+            }
+
+            #game-message {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: yellow;
+                font-size: 32px;
+                font-weight: bold;
+                text-align: center;
+                text-shadow: 2px 2px 4px #000;
+                opacity: 0;
+                transition: opacity 0.5s;
+            }
+
+            #game-message.show {
+                opacity: 1;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="game-container">
+            <div id="score-display">
+                <span id="score">0</span>
+                <span id="high-score">HIGH: 0</span>
+                <span id="level">LEVEL: 1</span>
+            </div>
+            <canvas id="board"></canvas>
+            <div id="lives-display"></div>
+            <div id="game-message"></div>
+        </div>
+        <audio id="eat-sound" src="sounds/eat.wav" preload="auto"></audio>
+        <audio id="power-pellet-sound" src="sounds/power_pellet.wav" preload="auto"></audio>
+        <audio id="ghost-eaten-sound" src="sounds/ghost_eaten.wav" preload="auto"></audio>
+        <audio id="death-sound" src="sounds/death.wav" preload="auto"></audio>
+        <audio id="game-start-sound" src="sounds/game_start.wav" preload="auto"></audio>
+
+        <script>
+            // Game Constants
+            const rowCount = 21;
+            const columnCount = 19;
+            const tileSize = 32;
+            const boardWidth = columnCount * tileSize;
+            const boardHeight = rowCount * tileSize;
+
+            // Game State
+            let board, context;
+            let gameOver = false;
+            let score = 0;
+            let highScore = 0;
+            let lives = 3;
+            let level = 1;
+            let pelletsEaten = 0;
+            let totalPellets = 0;
+            let frightenedMode = false;
+            let frightenedTimer = 0;
+            const FRIGHTENED_DURATION = 10000; // 10 seconds
+
+            // Game Objects
+            let pacman;
+            const walls = new Set();
+            const foods = new Set();
+            const powerPellets = new Set();
+            const ghosts = new Set();
+
+            // Images
+            let wallImage;
+            let blueGhostImage, orangeGhostImage, pinkGhostImage, redGhostImage;
+            let blueGhostFrightenedImage, whiteGhostFrightenedImage;
+            let pacmanImages = {
+                up: [], down: [], left: [], right: [],
+                death: []
+            };
+            let lifeImage;
+
+            // Sounds
+            let eatSound, powerPelletSound, ghostEatenSound, deathSound, gameStartSound;
+
+            // Tile Map
+            const tileMap = [
+                "XXXXXXXXXXXXXXXXXXX",
+                "X        X        X",
+                "X XX XXX X XXX XX X",
+                "X                 X",
+                "X XX X XXXXX X XX X",
+                "X    X       X    X",
+                "XXXX XXXX XXXX XXXX",
+                "OOOX X       X XOOO",
+                "XXXX X XXrXX X XXXX",
+                "O       bpo       O",
+                "XXXX X XXXXX X XXXX",
+                "OOOX X       X XOOO",
+                "XXXX X XXXXX X XXXX",
+                "X        X        X",
+                "X XX XXX X XXX XX X",
+                "X  X     P     X  X",
+                "XX X X XXXXX X X XX",
+                "X    X   X   X    X",
+                "X XXXXXX X XXXXXX X",
+                "X                 X",
+                "XXXXXXXXXXXXXXXXXXX" 
+            ];
+
+            // Ghost House Positions
+            const GHOST_HOUSE_ENTRANCE = { x: 9 * tileSize, y: 9 * tileSize };
+            const GHOST_HOUSE_CENTER = { x: 9 * tileSize, y: 8 * tileSize };
+
+            // Game Initialization
+            window.onload = function() {
+                board = document.getElementById("board");
+                board.height = boardHeight;
+                board.width = boardWidth;
+                context = board.getContext("2d");
+
+                // Load sounds
+                eatSound = document.getElementById("eat-sound");
+                powerPelletSound = document.getElementById("power-pellet-sound");
+                ghostEatenSound = document.getElementById("ghost-eaten-sound");
+                deathSound = document.getElementById("death-sound");
+                gameStartSound = document.getElementById("game-start-sound");
+
+                loadImages();
+                loadMap();
+                updateLivesDisplay();
+                showMessage("READY!", 2000, startGame);
+            };
+
+            function loadImages() {
+                // Load wall image
+                wallImage = new Image();
+                wallImage.src = "./wall.png";
+
+                // Load ghost images
+                blueGhostImage = new Image();
+                blueGhostImage.src = "./blueGhost.png";
+                orangeGhostImage = new Image();
+                orangeGhostImage.src = "./orangeGhost.png";
+                pinkGhostImage = new Image();
+                pinkGhostImage.src = "./pinkGhost.png";
+                redGhostImage = new Image();
+                redGhostImage.src = "./redGhost.png";
+                
+                // Load frightened ghost images
+                blueGhostFrightenedImage = new Image();
+                blueGhostFrightenedImage.src = "./blueGhostFrightened.png";
+                whiteGhostFrightenedImage = new Image();
+                whiteGhostFrightenedImage.src = "./whiteGhostFrightened.png";
+
+                // Load Pac-Man animation frames
+                for (let i = 0; i < 4; i++) {
+                    pacmanImages.up[i] = new Image();
+                    pacmanImages.up[i].src = `./pacmanUp${i}.png`;
+                    pacmanImages.down[i] = new Image();
+                    pacmanImages.down[i].src = `./pacmanDown${i}.png`;
+                    pacmanImages.left[i] = new Image();
+                    pacmanImages.left[i].src = `./pacmanLeft${i}.png`;
+                    pacmanImages.right[i] = new Image();
+                    pacmanImages.right[i].src = `./pacmanRight${i}.png`;
+                }
+
+                // Load life icon
+                lifeImage = new Image();
+                lifeImage.src = "./pacmanRight.png";
+            }
+
+            function loadMap() {
+                walls.clear();
+                foods.clear();
+                powerPellets.clear();
+                ghosts.clear();
+                totalPellets = 0;
+
+                for (let r = 0; r < rowCount; r++) {
+                    for (let c = 0; c < columnCount; c++) {
+                        const tileMapChar = tileMap[r][c];
+                        const x = c * tileSize;
+                        const y = r * tileSize;
+
+                        if (tileMapChar == 'X') {
+                            walls.add(new Block(wallImage, x, y, tileSize, tileSize));
+                        }
+                        else if (tileMapChar == 'b') {
+                            ghosts.add(new Ghost(blueGhostImage, x, y, 'blue', 'chase'));
+                        }
+                        else if (tileMapChar == 'o') {
+                            ghosts.add(new Ghost(orangeGhostImage, x, y, 'orange', 'scatter'));
+                        }
+                        else if (tileMapChar == 'p') {
+                            ghosts.add(new Ghost(pinkGhostImage, x, y, 'pink', 'scatter'));
+                        }
+                        else if (tileMapChar == 'r') {
+                            ghosts.add(new Ghost(redGhostImage, x, y, 'red', 'chase'));
+                        }
+                        else if (tileMapChar == 'P') {
+                            pacman = new PacMan(x, y);
+                        }
+                        else if (tileMapChar == ' ') {
+                            foods.add(new Block(null, x + 14, y + 14, 4, 4));
+                            totalPellets++;
+                        }
+                        else if (tileMapChar == 'O') {
+                            powerPellets.add(new Block(null, x + 8, y + 8, 16, 16));
+                            totalPellets++;
+                        }
+                    }
+                }
+            }
+
+            function startGame() {
+                gameStartSound.play();
+                update();
+            }
+
+            // Game Loop
+            function update() {
+                if (gameOver) return;
+
+                // Update game state
+                updateGameState();
+                
+                // Move characters
+                moveCharacters();
+                
+                // Check collisions
+                checkCollisions();
+                
+                // Draw everything
+                draw();
+                
+                // Continue game loop
+                requestAnimationFrame(update);
+            }
+
+            function updateGameState() {
+                // Update frightened mode timer
+                if (frightenedMode) {
+                    frightenedTimer -= 16; // Assuming ~60fps
+                    if (frightenedTimer <= 0) {
+                        endFrightenedMode();
+                    } else if (frightenedTimer <= 2000) { // Last 2 seconds - blinking
+                        for (let ghost of ghosts) {
+                            ghost.blinking = Math.floor(frightenedTimer / 200) % 2 === 0;
+                        }
+                    }
+                }
+            }
+
+            function moveCharacters() {
+                // Move Pac-Man
+                pacman.move();
+                
+                // Move ghosts
+                for (let ghost of ghosts) {
+                    ghost.move();
+                }
+            }
+
+            function checkCollisions() {
+                checkWallCollisions();
+                checkGhostCollisions();
+                checkFoodCollisions();
+                checkPowerPelletCollisions();
+                checkLevelCompletion();
+            }
+
+            function draw() {
+                // Clear canvas
+                context.clearRect(0, 0, board.width, board.height);
+                
+                // Draw walls
+                for (let wall of walls) {
+                    context.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height);
+                }
+                
+                // Draw food
+                context.fillStyle = "white";
+                for (let food of foods) {
+                    context.beginPath();
+                    context.arc(food.x + food.width/2, food.y + food.height/2, food.width/2, 0, Math.PI * 2);
+                    context.fill();
+                }
+                
+                // Draw power pellets
+                context.fillStyle = "white";
+                for (let pellet of powerPellets) {
+                    context.beginPath();
+                    context.arc(pellet.x + pellet.width/2, pellet.y + pellet.height/2, pellet.width/2, 0, Math.PI * 2);
+                    context.fill();
+                }
+                
+                // Draw ghosts
+                for (let ghost of ghosts) {
+                    ghost.draw();
+                }
+                
+                // Draw Pac-Man
+                pacman.draw();
+                
+                // Update score display
+                document.getElementById("score").textContent = score;
+                document.getElementById("high-score").textContent = `HIGH: ${highScore}`;
+                document.getElementById("level").textContent = `LEVEL: ${level}`;
+            }
+
+            // Game Classes
+            class Block {
+                constructor(image, x, y, width, height) {
+                    this.image = image;
+                    this.x = x;
+                    this.y = y;
+                    this.width = width;
+                    this.height = height;
+                    this.startX = x;
+                    this.startY = y;
+                }
+
+                reset() {
+                    this.x = this.startX;
+                    this.y = this.startY;
+                }
+            }
+
+            class PacMan extends Block {
+                constructor(x, y) {
+                    super(null, x, y, tileSize, tileSize);
+                    this.direction = 'right';
+                    this.nextDirection = 'right';
+                    this.velocityX = 0;
+                    this.velocityY = 0;
+                    this.speed = tileSize / 8;
+                    this.animationFrame = 0;
+                    this.animationTimer = 0;
+                    this.isAlive = true;
+                }
+
+                updateDirection(newDirection) {
+                    this.nextDirection = newDirection;
+                }
+
+                move() {
+                    // Try to change direction if requested
+                    if (this.direction !== this.nextDirection) {
+                        const originalDirection = this.direction;
+                        this.direction = this.nextDirection;
+                        this.updateVelocity();
+                        
+                        // Check if new direction is valid
+                        this.x += this.velocityX;
+                        this.y += this.velocityY;
+                        
+                        let canMove = true;
+                        for (let wall of walls) {
+                            if (collision(this, wall)) {
+                                canMove = false;
+                                break;
+                            }
+                        }
+                        
+                        if (!canMove) {
+                            this.direction = originalDirection;
+                            this.updateVelocity();
+                        }
+                        
+                        this.x -= this.velocityX;
+                        this.y -= this.velocityY;
+                    }
+                    
+                    // Move in current direction
+                    this.x += this.velocityX;
+                    this.y += this.velocityY;
+                    
+                    // Wrap around tunnel
+                    if (this.x < -this.width) {
+                        this.x = boardWidth;
+                    } else if (this.x > boardWidth) {
+                        this.x = -this.width;
+                    }
+                    
+                    // Animation
+                    this.animationTimer++;
+                    if (this.animationTimer >= 5) {
+                        this.animationTimer = 0;
+                        this.animationFrame = (this.animationFrame + 1) % 4;
+                    }
+                }
+
+                updateVelocity() {
+                    switch (this.direction) {
+                        case 'up':
+                            this.velocityX = 0;
+                            this.velocityY = -this.speed;
+                            break;
+                        case 'down':
+                            this.velocityX = 0;
+                            this.velocityY = this.speed;
+                            break;
+                        case 'left':
+                            this.velocityX = -this.speed;
+                            this.velocityY = 0;
+                            break;
+                        case 'right':
+                            this.velocityX = this.speed;
+                            this.velocityY = 0;
+                            break;
+                    }
+                }
+
+                draw() {
+                    if (!this.isAlive) return;
+                    
+                    let img;
+                    switch (this.direction) {
+                        case 'up':
+                            img = pacmanImages.up[this.animationFrame];
+                            break;
+                        case 'down':
+                            img = pacmanImages.down[this.animationFrame];
+                            break;
+                        case 'left':
+                            img = pacmanImages.left[this.animationFrame];
+                            break;
+                        case 'right':
+                            img = pacmanImages.right[this.animationFrame];
+                            break;
+                    }
+                    
+                    context.drawImage(img, this.x, this.y, this.width, this.height);
+                }
+
+                die() {
+                    this.isAlive = false;
+                    deathSound.play();
+                    lives--;
+                    updateLivesDisplay();
+                    
+                    if (lives <= 0) {
+                        gameOver = true;
+                        showMessage("GAME OVER", 2000, resetGame);
+                    } else {
+                        showMessage("READY!", 1500, resetPositions);
+                    }
+                }
+            }
+
+            class Ghost extends Block {
+                constructor(image, x, y, color, behavior) {
+                    super(image, x, y, tileSize, tileSize);
+                    this.color = color;
+                    this.originalImage = image;
+                    this.direction = this.getRandomDirection();
+                    this.velocityX = 0;
+                    this.velocityY = 0;
+                    this.speed = tileSize / 10;
+                    this.behavior = behavior;
+                    this.behaviorTimer = 0;
+                    this.target = { x: 0, y: 0 };
+                    this.blinking = false;
+                    this.isFrightened = false;
+                    this.isEaten = false;
+                    this.updateVelocity();
+                }
+
+                move() {
+                    if (this.isEaten && this.x === GHOST_HOUSE_CENTER.x && this.y === GHOST_HOUSE_CENTER.y) {
+                        this.isEaten = false;
+                        this.isFrightened = false;
+                        this.image = this.originalImage;
+                        return;
+                    }
+                    
+                    // Update behavior timer
+                    this.behaviorTimer += 16;
+                    if (this.behaviorTimer >= 7000) { // Change behavior every 7 seconds
+                        this.behaviorTimer = 0;
+                        this.behavior = this.behavior === 'chase' ? 'scatter' : 'chase';
+                    }
+                    
+                    // Set target based on behavior
+                    if (this.isEaten) {
+                        this.target = GHOST_HOUSE_CENTER;
+                    } else if (this.isFrightened) {
+                        // Random movement when frightened
+                        if (Math.random() < 0.05 || this.atIntersection()) {
+                            this.direction = this.getRandomDirection();
+                        }
+                    } else {
+                        switch (this.behavior) {
+                            case 'chase':
+                                this.setChaseTarget();
+                                break;
+                            case 'scatter':
+                                this.setScatterTarget();
+                                break;
+                        }
+                        
+                        // Change direction at intersections
+                        if (this.atIntersection()) {
+                            const possibleDirections = this.getPossibleDirections();
+                            let bestDirection = this.direction;
+                            let bestDistance = Infinity;
+                            
+                            for (let dir of possibleDirections) {
+                                if (dir === this.getOppositeDirection()) continue;
+                                
+                                let x = this.x, y = this.y;
+                                switch (dir) {
+                                    case 'up': y -= this.speed; break;
+                                    case 'down': y += this.speed; break;
+                                    case 'left': x -= this.speed; break;
+                                    case 'right': x += this.speed; break;
+                                }
+                                
+                                const dist = Math.sqrt(Math.pow(x - this.target.x, 2) + Math.pow(y - this.target.y, 2));
+                                if (dist < bestDistance) {
+                                    bestDistance = dist;
+                                    bestDirection = dir;
+                                }
+                            }
+                            
+                            this.direction = bestDirection;
+                        }
+                    }
+                    
+                    // Move in current direction
+                    this.updateVelocity();
+                    this.x += this.velocityX;
+                    this.y += this.velocityY;
+                    
+                    // Wrap around tunnel
+                    if (this.x < -this.width) {
+                        this.x = boardWidth;
+                    } else if (this.x > boardWidth) {
+                        this.x = -this.width;
+                    }
+                }
+
+                atIntersection() {
+                    // Check if ghost is at a position where it can change direction
+                    const centerX = this.x + this.width/2;
+                    const centerY = this.y + this.height/2;
+                    return Math.abs(centerX % tileSize) < 2 && Math.abs(centerY % tileSize) < 2;
+                }
+
+                getPossibleDirections() {
+                    const directions = ['up', 'down', 'left', 'right'];
+                    return directions.filter(dir => {
+                        // Check if direction is valid (not blocked by wall)
+                        let x = this.x, y = this.y;
+                        switch (dir) {
+                            case 'up': y -= this.speed; break;
+                            case 'down': y += this.speed; break;
+                            case 'left': x -= this.speed; break;
+                            case 'right': x += this.speed; break;
+                        }
+                        
+                        const tempBlock = new Block(null, x, y, this.width, this.height);
+                        for (let wall of walls) {
+                            if (collision(tempBlock, wall)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                }
+
+                getRandomDirection() {
+                    const directions = this.getPossibleDirections();
+                    return directions[Math.floor(Math.random() * directions.length)];
+                }
+
+                getOppositeDirection() {
+                    switch (this.direction) {
+                        case 'up': return 'down';
+                        case 'down': return 'up';
+                        case 'left': return 'right';
+                        case 'right': return 'left';
+                    }
+                }
+
+                setChaseTarget() {
+                    // Each ghost has different chase behavior
+                    switch (this.color) {
+                        case 'red': // Blinky - chases directly
+                            this.target = { x: pacman.x, y: pacman.y };
+                            break;
+                        case 'pink': // Pinky - targets 4 tiles ahead of Pac-Man
+                            let aheadX = pacman.x, aheadY = pacman.y;
+                            switch (pacman.direction) {
+                                case 'up': aheadY -= tileSize * 4; break;
+                                case 'down': aheadY += tileSize * 4; break;
+                                case 'left': aheadX -= tileSize * 4; break;
+                                case 'right': aheadX += tileSize * 4; break;
+                            }
+                            this.target = { x: aheadX, y: aheadY };
+                            break;
+                        case 'blue': // Inky - uses complex targeting
+                            // Targets tile that's vector from Blinky to 2 tiles ahead of Pac-Man
+                            const blinky = [...ghosts].find(g => g.color === 'red');
+                            if (blinky) {
+                                let aheadX = pacman.x, aheadY = pacman.y;
+                                switch (pacman.direction) {
+                                    case 'up': aheadY -= tileSize * 2; break;
+                                    case 'down': aheadY += tileSize * 2; break;
+                                    case 'left': aheadX -= tileSize * 2; break;
+                                    case 'right': aheadX += tileSize * 2; break;
+                                }
+                                const vectorX = aheadX - blinky.x;
+                                const vectorY = aheadY - blinky.y;
+                                this.target = { x: aheadX + vectorX, y: aheadY + vectorY };
+                            }
+                            break;
+                        case 'orange': // Clyde - chases unless too close
+                            const dist = Math.sqrt(Math.pow(this.x - pacman.x, 2) + Math.pow(this.y - pacman.y, 2));
+                            if (dist < tileSize * 8) {
+                                // Scatter to corner
+                                this.target = { x: 0, y: boardHeight };
+                            } else {
+                                this.target = { x: pacman.x, y: pacman.y };
+                            }
+                            break;
+                    }
+                }
+
+                setScatterTarget() {
+                    // Each ghost has a different corner
+                    switch (this.color) {
+                        case 'red': // Top right
+                            this.target = { x: boardWidth, y: 0 };
+                            break;
+                        case 'pink': // Top left
+                            this.target = { x: 0, y: 0 };
+                            break;
+                        case 'blue': // Bottom right
+                            this.target = { x: boardWidth, y: boardHeight };
+                            break;
+                        case 'orange': // Bottom left
+                            this.target = { x: 0, y: boardHeight };
+                            break;
+                    }
+                }
+
+                updateVelocity() {
+                    switch (this.direction) {
+                        case 'up':
+                            this.velocityX = 0;
+                            this.velocityY = -this.speed;
+                            break;
+                        case 'down':
+                            this.velocityX = 0;
+                            this.velocityY = this.speed;
+                            break;
+                        case 'left':
+                            this.velocityX = -this.speed;
+                            this.velocityY = 0;
+                            break;
+                        case 'right':
+                            this.velocityX = this.speed;
+                            this.velocityY = 0;
+                            break;
+                    }
+                }
+
+                draw() {
+                    if (this.isEaten) {
+                        // Draw eyes only when returning to ghost house
+                        this.drawEyes();
+                    } else if (this.isFrightened) {
+                        if (this.blinking) {
+                            context.drawImage(whiteGhostFrightenedImage, this.x, this.y, this.width, this.height);
+                        } else {
+                            context.drawImage(blueGhostFrightenedImage, this.x, this.y, this.width, this.height);
+                        }
+                    } else {
+                        context.drawImage(this.image, this.x, this.y, this.width, this.height);
+                    }
+                }
+
+                drawEyes() {
+                    // Draw ghost body as transparent
+                    context.fillStyle = "rgba(255, 255, 255, 0.3)";
+                    context.fillRect(this.x, this.y, this.width, this.height);
+                    
+                    // Draw eyes
+                    const eyeSize = this.width / 4;
+                    const leftEyeX = this.x + this.width/3 - eyeSize/2;
+                    const rightEyeX = this.x + this.width*2/3 - eyeSize/2;
+                    const eyeY = this.y + this.height/3 - eyeSize/2;
+                    const pupilSize = eyeSize/2;
+                    
+                    // White of the eyes
+                    context.fillStyle = "white";
+                    context.beginPath();
+                    context.arc(leftEyeX + eyeSize/2, eyeY + eyeSize/2, eyeSize/2, 0, Math.PI * 2);
+                    context.arc(rightEyeX + eyeSize/2, eyeY + eyeSize/2, eyeSize/2, 0, Math.PI * 2);
+                    context.fill();
+                    
+                    // Pupils
+                    context.fillStyle = "blue";
+                    let pupilOffsetX = 0, pupilOffsetY = 0;
+                    switch (this.direction) {
+                        case 'up': pupilOffsetY = -pupilSize/2; break;
+                        case 'down': pupilOffsetY = pupilSize/2; break;
+                        case 'left': pupilOffsetX = -pupilSize/2; break;
+                        case 'right': pupilOffsetX = pupilSize/2; break;
+                    }
+                    
+                    context.beginPath();
+                    context.arc(leftEyeX + eyeSize/2 + pupilOffsetX, eyeY + eyeSize/2 + pupilOffsetY, pupilSize/2, 0, Math.PI * 2);
+                    context.arc(rightEyeX + eyeSize/2 + pupilOffsetX, eyeY + eyeSize/2 + pupilOffsetY, pupilSize/2, 0, Math.PI * 2);
+                    context.fill();
+                }
+
+                becomeFrightened() {
+                    this.isFrightened = true;
+                    this.isEaten = false;
+                    this.speed = tileSize / 12; // Slow down when frightened
+                    this.direction = this.getOppositeDirection(); // Reverse direction
+                }
+
+                endFrightened() {
+                    this.isFrightened = false;
+                    this.speed = tileSize / 10;
+                    this.image = this.originalImage;
+                }
+
+                eat() {
+                    this.isEaten = true;
+                    this.isFrightened = false;
+                    this.speed = tileSize / 5; // Move faster when eaten
+                }
+            }
+
+            // Game Functions
+            function checkWallCollisions() {
+                // Check Pac-Man wall collisions
+                for (let wall of walls) {
+                    if (collision(pacman, wall)) {
+                        // Move Pac-Man back
+                        pacman.x -= pacman.velocityX;
+                        pacman.y -= pacman.velocityY;
+                        pacman.velocityX = 0;
+                        pacman.velocityY = 0;
+                        break;
+                    }
+                }
+                
+                // Check ghost wall collisions
+                for (let ghost of ghosts) {
+                    if (ghost.isEaten) continue;
+                    
+                    for (let wall of walls) {
+                        if (collision(ghost, wall)) {
+                            ghost.x -= ghost.velocityX;
+                            ghost.y -= ghost.velocityY;
+                            ghost.direction = ghost.getRandomDirection();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            function checkGhostCollisions() {
+                for (let ghost of ghosts) {
+                    if (collision(pacman, ghost)) {
+                        if (ghost.isFrightened) {
+                            // Eat ghost
+                            ghost.eat();
+                            ghostEatenSound.play();
+                            score += 200 * level; // More points for higher levels
+                        } else if (!ghost.isEaten) {
+                            // Pac-Man dies
+                            pacman.die();
+                            return;
+                        }
+                    }
+                }
+            }
+
+            function checkFoodCollisions() {
+                for (let food of foods) {
+                    if (collision(pacman, food)) {
+                        foods.delete(food);
+                        eatSound.play();
+                        score += 10 * level;
+                        pelletsEaten++;
+                        return; // Only eat one pellet per frame
+                    }
+                }
+            }
+
+            function checkPowerPelletCollisions() {
+                for (let pellet of powerPellets) {
+                    if (collision(pacman, pellet)) {
+                        powerPellets.delete(pellet);
+                        powerPelletSound.play();
+                        score += 50 * level;
+                        pelletsEaten++;
+                        startFrightenedMode();
+                        return; // Only eat one pellet per frame
+                    }
+                }
+            }
+
+            function startFrightenedMode() {
+                frightenedMode = true;
+                frightenedTimer = FRIGHTENED_DURATION;
+                for (let ghost of ghosts) {
+                    if (!ghost.isEaten) {
+                        ghost.becomeFrightened();
+                    }
+                }
+            }
+
+            function endFrightenedMode() {
+                frightenedMode = false;
+                for (let ghost of ghosts) {
+                    ghost.endFrightened();
+                }
+            }
+
+            function checkLevelCompletion() {
+                if (foods.size === 0 && powerPellets.size === 0) {
+                    level++;
+                    pelletsEaten = 0;
+                    showMessage(`LEVEL ${level}`, 2000, () => {
+                        loadMap();
+                        resetPositions();
+                    });
+                }
+            }
+
+            function collision(a, b) {
+                return a.x < b.x + b.width &&
+                       a.x + a.width > b.x &&
+                       a.y < b.y + b.height &&
+                       a.y + a.height > b.y;
+            }
+
+            function resetPositions() {
+                pacman.reset();
+                pacman.isAlive = true;
+                pacman.direction = 'right';
+                pacman.nextDirection = 'right';
+                pacman.velocityX = 0;
+                pacman.velocityY = 0;
+                
+                for (let ghost of ghosts) {
+                    ghost.reset();
+                    ghost.isEaten = false;
+                    ghost.isFrightened = false;
+                    ghost.direction = ghost.getRandomDirection();
+                    ghost.behaviorTimer = 0;
+                    ghost.behavior = ghost.color === 'red' || ghost.color === 'blue' ? 'chase' : 'scatter';
+                }
+                
+                endFrightenedMode();
+            }
+
+            function resetGame() {
+                score = 0;
+                lives = 3;
+                level = 1;
+                pelletsEaten = 0;
+                gameOver = false;
+                updateLivesDisplay();
+                loadMap();
+                showMessage("READY!", 2000, startGame);
+            }
+
+            function updateLivesDisplay() {
+                const livesDisplay = document.getElementById("lives-display");
+                livesDisplay.innerHTML = '';
+                
+                for (let i = 0; i < lives; i++) {
+                    const life = document.createElement("div");
+                    life.className = "life";
+                    livesDisplay.appendChild(life);
+                }
+            }
+
+            function showMessage(text, duration, callback) {
+                const message = document.getElementById("game-message");
+                message.textContent = text;
+                message.classList.add("show");
+                
+                setTimeout(() => {
+                    message.classList.remove("show");
+                    if (callback) setTimeout(callback, 500);
+                }, duration);
+            }
+
+            // Event Listeners
+            document.addEventListener("keydown", (e) => {
+                if (gameOver && e.code === "Space") {
+                    resetGame();
+                    return;
+                }
+                
+                switch (e.code) {
+                    case "ArrowUp":
+                    case "KeyW":
+                        pacman.updateDirection('up');
+                        break;
+                    case "ArrowDown":
+                    case "KeyS":
+                        pacman.updateDirection('down');
+                        break;
+                    case "ArrowLeft":
+                    case "KeyA":
+                        pacman.updateDirection('left');
+                        break;
+                    case "ArrowRight":
+                    case "KeyD":
+                        pacman.updateDirection('right');
+                        break;
+                }
+            });
+        </script>
+    </body>
+</html>
