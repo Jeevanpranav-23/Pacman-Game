@@ -14,6 +14,7 @@
                 align-items: center;
                 height: 100vh;
                 font-family: 'Courier New', monospace;
+                overflow: hidden;
             }
 
             #game-container {
@@ -63,10 +64,322 @@
                 text-shadow: 2px 2px 4px #000;
                 opacity: 0;
                 transition: opacity 0.5s;
+                pointer-events: none;
             }
 
             #game-message.show {
                 opacity: 1;
+            }
+
+            /* Start Screen */
+            #start-screen {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.9);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 10;
+                color: yellow;
+            }
+
+            #start-screen h1 {
+                font-size: 48px;
+                margin-bottom: 20px;
+                text-shadow: 0 0 10px #ff0;
+                animation: pulse 1.5s infinite;
+            }
+
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+
+            #player-form {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+                margin-bottom: 30px;
+            }
+
+            #player-name {
+                padding: 10px;
+                font-size: 18px;
+                border: 2px solid yellow;
+                background: black;
+                color: white;
+                text-align: center;
+            }
+
+            .difficulty-buttons {
+                display: flex;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+
+            .difficulty-btn {
+                padding: 10px 20px;
+                background: black;
+                color: white;
+                border: 2px solid;
+                font-size: 16px;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            .difficulty-btn:hover {
+                transform: scale(1.1);
+            }
+
+            #easy-btn {
+                border-color: #00ff00;
+            }
+            #easy-btn:hover {
+                background: #00ff00;
+                color: black;
+            }
+
+            #medium-btn {
+                border-color: #ffff00;
+            }
+            #medium-btn:hover {
+                background: #ffff00;
+                color: black;
+            }
+
+            #hard-btn {
+                border-color: #ff0000;
+            }
+            #hard-btn:hover {
+                background: #ff0000;
+                color: black;
+            }
+
+            #start-btn {
+                padding: 15px 30px;
+                background: yellow;
+                color: black;
+                border: none;
+                font-size: 20px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s;
+                margin-top: 20px;
+            }
+
+            #start-btn:hover {
+                transform: scale(1.1);
+                box-shadow: 0 0 20px yellow;
+            }
+
+            /* How to Play Popup */
+            #how-to-play {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.9);
+                border: 3px solid yellow;
+                padding: 20px;
+                color: white;
+                max-width: 80%;
+                max-height: 80%;
+                overflow-y: auto;
+                z-index: 20;
+                display: none;
+            }
+
+            #how-to-play h2 {
+                color: yellow;
+                text-align: center;
+                margin-top: 0;
+            }
+
+            #how-to-play-close {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+            }
+
+            /* High Scores Table */
+            #high-scores {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.9);
+                border: 3px solid yellow;
+                padding: 20px;
+                color: white;
+                max-width: 80%;
+                max-height: 80%;
+                overflow-y: auto;
+                z-index: 20;
+                display: none;
+            }
+
+            #high-scores h2 {
+                color: yellow;
+                text-align: center;
+                margin-top: 0;
+            }
+
+            #high-scores-close {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                background: none;
+                border: none;
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+            }
+
+            #scores-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+            }
+
+            #scores-table th {
+                background: yellow;
+                color: black;
+                padding: 8px;
+                text-align: left;
+            }
+
+            #scores-table td {
+                padding: 8px;
+                border-bottom: 1px solid #333;
+            }
+
+            #scores-table tr:nth-child(even) {
+                background: rgba(255, 255, 0, 0.1);
+            }
+
+            /* Timer Display */
+            #timer-display {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                color: white;
+                font-size: 18px;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 5px 10px;
+                border-radius: 5px;
+                display: none;
+            }
+
+            /* Mobile Controls */
+            #mobile-controls {
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: none;
+                grid-template-areas:
+                    ". up ."
+                    "left . right"
+                    ". down .";
+                gap: 10px;
+            }
+
+            .mobile-btn {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                background: rgba(255, 255, 0, 0.3);
+                border: 2px solid yellow;
+                color: white;
+                font-size: 24px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                user-select: none;
+            }
+
+            .mobile-btn:active {
+                background: rgba(255, 255, 0, 0.7);
+            }
+
+            #up-btn { grid-area: up; }
+            #down-btn { grid-area: down; }
+            #left-btn { grid-area: left; }
+            #right-btn { grid-area: right; }
+
+            /* Game Overlay Buttons */
+            #game-buttons {
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 15px;
+                z-index: 5;
+            }
+
+            .game-btn {
+                padding: 8px 15px;
+                background: rgba(0, 0, 0, 0.7);
+                color: white;
+                border: 2px solid yellow;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+            /* Confetti Effect */
+            .confetti {
+                position: absolute;
+                width: 10px;
+                height: 10px;
+                background-color: #f00;
+                opacity: 0;
+                z-index: 15;
+                animation: confetti-fall 3s ease-in-out forwards;
+            }
+
+            @keyframes confetti-fall {
+                0% {
+                    transform: translateY(-100vh) rotate(0deg);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(100vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+
+            /* Fruit Bonus */
+            .fruit-bonus {
+                position: absolute;
+                font-size: 24px;
+                color: yellow;
+                opacity: 0;
+                animation: bonus-fade 1.5s forwards;
+                z-index: 5;
+            }
+
+            @keyframes bonus-fade {
+                0% {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(-50px);
+                    opacity: 0;
+                }
             }
         </style>
     </head>
@@ -80,12 +393,93 @@
             <canvas id="board"></canvas>
             <div id="lives-display"></div>
             <div id="game-message"></div>
+            <div id="timer-display">TIME: 0:00</div>
+
+            <!-- Game Overlay Buttons -->
+            <div id="game-buttons">
+                <button id="how-to-play-btn" class="game-btn">How to Play</button>
+                <button id="high-scores-btn" class="game-btn">High Scores</button>
+            </div>
+
+            <!-- Mobile Controls -->
+            <div id="mobile-controls">
+                <div id="up-btn" class="mobile-btn">↑</div>
+                <div id="left-btn" class="mobile-btn">←</div>
+                <div id="right-btn" class="mobile-btn">→</div>
+                <div id="down-btn" class="mobile-btn">↓</div>
+            </div>
         </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <h1>PAC-MAN</h1>
+            <div id="player-form">
+                <input type="text" id="player-name" placeholder="Enter your name" maxlength="15" required>
+                <div class="difficulty-buttons">
+                    <button id="easy-btn" class="difficulty-btn">Easy</button>
+                    <button id="medium-btn" class="difficulty-btn">Medium</button>
+                    <button id="hard-btn" class="difficulty-btn">Hard</button>
+                </div>
+            </div>
+            <button id="start-btn">START GAME</button>
+            <button id="view-scores-btn" class="game-btn">View High Scores</button>
+        </div>
+
+        <!-- How to Play Popup -->
+        <div id="how-to-play">
+            <button id="how-to-play-close">&times;</button>
+            <h2>HOW TO PLAY</h2>
+            <h3>Desktop Controls:</h3>
+            <p>↑ or W - Move Up</p>
+            <p>↓ or S - Move Down</p>
+            <p>← or A - Move Left</p>
+            <p>→ or D - Move Right</p>
+            <p>SPACE - Restart after Game Over</p>
+            
+            <h3>Mobile Controls:</h3>
+            <p>Use the on-screen directional buttons to move Pac-Man</p>
+            
+            <h3>Game Rules:</h3>
+            <p>- Eat all the dots to advance to the next level</p>
+            <p>- Big dots make ghosts vulnerable for a short time</p>
+            <p>- Eating a vulnerable ghost gives bonus points</p>
+            <p>- Avoid ghosts when they're not vulnerable</p>
+            
+            <h3>Difficulty Levels:</h3>
+            <p><strong>Easy:</strong> Slower ghosts, longer power pellet duration</p>
+            <p><strong>Medium:</strong> Standard speed and duration</p>
+            <p><strong>Hard:</strong> Faster ghosts, shorter power pellet duration</p>
+        </div>
+
+        <!-- High Scores Table -->
+        <div id="high-scores">
+            <button id="high-scores-close">&times;</button>
+            <h2>HIGH SCORES</h2>
+            <table id="scores-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Score</th>
+                        <th>Level</th>
+                        <th>Mode</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="scores-body">
+                    <!-- Scores will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Audio Elements -->
         <audio id="eat-sound" src="sounds/eat.wav" preload="auto"></audio>
         <audio id="power-pellet-sound" src="sounds/power_pellet.wav" preload="auto"></audio>
         <audio id="ghost-eaten-sound" src="sounds/ghost_eaten.wav" preload="auto"></audio>
         <audio id="death-sound" src="sounds/death.wav" preload="auto"></audio>
         <audio id="game-start-sound" src="sounds/game_start.wav" preload="auto"></audio>
+        <audio id="win-sound" src="sounds/win.wav" preload="auto"></audio>
+        <audio id="level-up-sound" src="sounds/level_up.wav" preload="auto"></audio>
 
         <script>
             // Game Constants
@@ -106,7 +500,12 @@
             let totalPellets = 0;
             let frightenedMode = false;
             let frightenedTimer = 0;
-            const FRIGHTENED_DURATION = 10000; // 10 seconds
+            let gameStarted = false;
+            let playerName = "";
+            let difficulty = "medium";
+            let gameTimer = 0;
+            let timerInterval;
+            let FRIGHTENED_DURATION = 10000; // 10 seconds (default for medium)
 
             // Game Objects
             let pacman;
@@ -126,7 +525,7 @@
             let lifeImage;
 
             // Sounds
-            let eatSound, powerPelletSound, ghostEatenSound, deathSound, gameStartSound;
+            let eatSound, powerPelletSound, ghostEatenSound, deathSound, gameStartSound, winSound, levelUpSound;
 
             // Tile Map
             const tileMap = [
@@ -170,12 +569,96 @@
                 ghostEatenSound = document.getElementById("ghost-eaten-sound");
                 deathSound = document.getElementById("death-sound");
                 gameStartSound = document.getElementById("game-start-sound");
+                winSound = document.getElementById("win-sound");
+                levelUpSound = document.getElementById("level-up-sound");
 
+                // Event listeners for start screen
+                document.getElementById("start-btn").addEventListener("click", startGameFromScreen);
+                document.getElementById("easy-btn").addEventListener("click", () => setDifficulty("easy"));
+                document.getElementById("medium-btn").addEventListener("click", () => setDifficulty("medium"));
+                document.getElementById("hard-btn").addEventListener("click", () => setDifficulty("hard"));
+                document.getElementById("view-scores-btn").addEventListener("click", showHighScores);
+                document.getElementById("how-to-play-btn").addEventListener("click", showHowToPlay);
+                document.getElementById("high-scores-btn").addEventListener("click", showHighScores);
+                document.getElementById("how-to-play-close").addEventListener("click", hideHowToPlay);
+                document.getElementById("high-scores-close").addEventListener("click", hideHighScores);
+
+                // Mobile controls
+                document.getElementById("up-btn").addEventListener("touchstart", () => pacman.updateDirection('up'));
+                document.getElementById("down-btn").addEventListener("touchstart", () => pacman.updateDirection('down'));
+                document.getElementById("left-btn").addEventListener("touchstart", () => pacman.updateDirection('left'));
+                document.getElementById("right-btn").addEventListener("touchstart", () => pacman.updateDirection('right'));
+
+                // Check if mobile device
+                if (/Mobi|Android/i.test(navigator.userAgent)) {
+                    document.getElementById("mobile-controls").style.display = "grid";
+                }
+
+                // Load high scores from localStorage
+                loadHighScores();
+
+                // Set default difficulty
+                setDifficulty("medium");
+            };
+
+            function setDifficulty(level) {
+                difficulty = level;
+                
+                // Reset active buttons
+                document.getElementById("easy-btn").style.background = "black";
+                document.getElementById("medium-btn").style.background = "black";
+                document.getElementById("hard-btn").style.background = "black";
+                
+                // Highlight selected difficulty
+                switch(level) {
+                    case "easy":
+                        document.getElementById("easy-btn").style.background = "#00ff00";
+                        FRIGHTENED_DURATION = 15000; // 15 seconds
+                        break;
+                    case "medium":
+                        document.getElementById("medium-btn").style.background = "#ffff00";
+                        FRIGHTENED_DURATION = 10000; // 10 seconds
+                        break;
+                    case "hard":
+                        document.getElementById("hard-btn").style.background = "#ff0000";
+                        FRIGHTENED_DURATION = 5000; // 5 seconds
+                        break;
+                }
+            }
+
+            function startGameFromScreen() {
+                const nameInput = document.getElementById("player-name");
+                if (!nameInput.value.trim()) {
+                    alert("Please enter your name!");
+                    return;
+                }
+                
+                playerName = nameInput.value.trim();
+                document.getElementById("start-screen").style.display = "none";
+                document.getElementById("timer-display").style.display = "block";
+                
+                startTimer();
                 loadImages();
                 loadMap();
                 updateLivesDisplay();
                 showMessage("READY!", 2000, startGame);
-            };
+            }
+
+            function startTimer() {
+                gameTimer = 0;
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    gameTimer += 1;
+                    const minutes = Math.floor(gameTimer / 60);
+                    const seconds = gameTimer % 60;
+                    document.getElementById("timer-display").textContent = 
+                        `TIME: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                }, 1000);
+            }
+
+            function stopTimer() {
+                clearInterval(timerInterval);
+            }
 
             function loadImages() {
                 // Load wall image
@@ -256,9 +739,26 @@
                         }
                     }
                 }
+
+                // Adjust ghost speed based on difficulty
+                const baseSpeed = tileSize / 10;
+                for (let ghost of ghosts) {
+                    switch(difficulty) {
+                        case "easy":
+                            ghost.speed = baseSpeed * 0.8;
+                            break;
+                        case "medium":
+                            ghost.speed = baseSpeed;
+                            break;
+                        case "hard":
+                            ghost.speed = baseSpeed * 1.2;
+                            break;
+                    }
+                }
             }
 
             function startGame() {
+                gameStarted = true;
                 gameStartSound.play();
                 update();
             }
@@ -487,6 +987,8 @@
                     
                     if (lives <= 0) {
                         gameOver = true;
+                        stopTimer();
+                        saveHighScore();
                         showMessage("GAME OVER", 2000, resetGame);
                     } else {
                         showMessage("READY!", 1500, resetPositions);
@@ -620,74 +1122,13 @@
                     return directions[Math.floor(Math.random() * directions.length)];
                 }
 
-                getOppositeDirection() {
+                            getOppositeDirection() {
                     switch (this.direction) {
                         case 'up': return 'down';
                         case 'down': return 'up';
                         case 'left': return 'right';
                         case 'right': return 'left';
-                    }
-                }
-
-                setChaseTarget() {
-                    // Each ghost has different chase behavior
-                    switch (this.color) {
-                        case 'red': // Blinky - chases directly
-                            this.target = { x: pacman.x, y: pacman.y };
-                            break;
-                        case 'pink': // Pinky - targets 4 tiles ahead of Pac-Man
-                            let aheadX = pacman.x, aheadY = pacman.y;
-                            switch (pacman.direction) {
-                                case 'up': aheadY -= tileSize * 4; break;
-                                case 'down': aheadY += tileSize * 4; break;
-                                case 'left': aheadX -= tileSize * 4; break;
-                                case 'right': aheadX += tileSize * 4; break;
-                            }
-                            this.target = { x: aheadX, y: aheadY };
-                            break;
-                        case 'blue': // Inky - uses complex targeting
-                            // Targets tile that's vector from Blinky to 2 tiles ahead of Pac-Man
-                            const blinky = [...ghosts].find(g => g.color === 'red');
-                            if (blinky) {
-                                let aheadX = pacman.x, aheadY = pacman.y;
-                                switch (pacman.direction) {
-                                    case 'up': aheadY -= tileSize * 2; break;
-                                    case 'down': aheadY += tileSize * 2; break;
-                                    case 'left': aheadX -= tileSize * 2; break;
-                                    case 'right': aheadX += tileSize * 2; break;
-                                }
-                                const vectorX = aheadX - blinky.x;
-                                const vectorY = aheadY - blinky.y;
-                                this.target = { x: aheadX + vectorX, y: aheadY + vectorY };
-                            }
-                            break;
-                        case 'orange': // Clyde - chases unless too close
-                            const dist = Math.sqrt(Math.pow(this.x - pacman.x, 2) + Math.pow(this.y - pacman.y, 2));
-                            if (dist < tileSize * 8) {
-                                // Scatter to corner
-                                this.target = { x: 0, y: boardHeight };
-                            } else {
-                                this.target = { x: pacman.x, y: pacman.y };
-                            }
-                            break;
-                    }
-                }
-
-                setScatterTarget() {
-                    // Each ghost has a different corner
-                    switch (this.color) {
-                        case 'red': // Top right
-                            this.target = { x: boardWidth, y: 0 };
-                            break;
-                        case 'pink': // Top left
-                            this.target = { x: 0, y: 0 };
-                            break;
-                        case 'blue': // Bottom right
-                            this.target = { x: boardWidth, y: boardHeight };
-                            break;
-                        case 'orange': // Bottom left
-                            this.target = { x: 0, y: boardHeight };
-                            break;
+                        default: return this.direction;
                     }
                 }
 
@@ -712,77 +1153,163 @@
                     }
                 }
 
+                setChaseTarget() {
+                    // Each ghost has different chase behavior
+                    switch (this.color) {
+                        case 'red': // Blinky - chases directly
+                            this.target = { x: pacman.x, y: pacman.y };
+                            break;
+                        case 'pink': // Pinky - targets 4 tiles ahead of Pac-Man
+                            let aheadX = pacman.x, aheadY = pacman.y;
+                            switch (pacman.direction) {
+                                case 'up': aheadY -= tileSize * 4; break;
+                                case 'down': aheadY += tileSize * 4; break;
+                                case 'left': aheadX -= tileSize * 4; break;
+                                case 'right': aheadX += tileSize * 4; break;
+                            }
+                            this.target = { x: aheadX, y: aheadY };
+                            break;
+                        case 'blue': // Inky - uses complex targeting
+                            // Targets tile that is vector from Blinky to 2 tiles ahead of Pac-Man
+                            let blinky = Array.from(ghosts).find(g => g.color === 'red');
+                            if (!blinky) blinky = { x: 0, y: 0 };
+                            
+                            let pacmanAheadX = pacman.x, pacmanAheadY = pacman.y;
+                            switch (pacman.direction) {
+                                case 'up': pacmanAheadY -= tileSize * 2; break;
+                                case 'down': pacmanAheadY += tileSize * 2; break;
+                                case 'left': pacmanAheadX -= tileSize * 2; break;
+                                case 'right': pacmanAheadX += tileSize * 2; break;
+                            }
+                            
+                            const vectorX = pacmanAheadX - blinky.x;
+                            const vectorY = pacmanAheadY - blinky.y;
+                            
+                            this.target = {
+                                x: pacmanAheadX + vectorX,
+                                y: pacmanAheadY + vectorY
+                            };
+                            break;
+                        case 'orange': // Clyde - chases unless too close
+                            const distance = Math.sqrt(
+                                Math.pow(this.x - pacman.x, 2) + 
+                                Math.pow(this.y - pacman.y, 2)
+                            );
+                            
+                            if (distance < tileSize * 8) {
+                                // Scatter to bottom left corner
+                                this.target = { x: 0, y: boardHeight };
+                            } else {
+                                this.target = { x: pacman.x, y: pacman.y };
+                            }
+                            break;
+                    }
+                }
+
+                setScatterTarget() {
+                    // Each ghost has a different corner they target in scatter mode
+                    switch (this.color) {
+                        case 'red': // Top right
+                            this.target = { x: boardWidth, y: 0 };
+                            break;
+                        case 'pink': // Top left
+                            this.target = { x: 0, y: 0 };
+                            break;
+                        case 'blue': // Bottom right
+                            this.target = { x: boardWidth, y: boardHeight };
+                            break;
+                        case 'orange': // Bottom left
+                            this.target = { x: 0, y: boardHeight };
+                            break;
+                    }
+                }
+
                 draw() {
                     if (this.isEaten) {
-                        // Draw eyes only when returning to ghost house
-                        this.drawEyes();
+                        // Draw eyes only when eaten
+                        context.fillStyle = "white";
+                        context.beginPath();
+                        context.arc(this.x + this.width/3, this.y + this.height/3, 5, 0, Math.PI * 2);
+                        context.arc(this.x + this.width*2/3, this.y + this.height/3, 5, 0, Math.PI * 2);
+                        context.fill();
                     } else if (this.isFrightened) {
+                        // Draw frightened ghost
                         if (this.blinking) {
                             context.drawImage(whiteGhostFrightenedImage, this.x, this.y, this.width, this.height);
                         } else {
                             context.drawImage(blueGhostFrightenedImage, this.x, this.y, this.width, this.height);
                         }
                     } else {
+                        // Draw normal ghost
                         context.drawImage(this.image, this.x, this.y, this.width, this.height);
                     }
-                }
-
-                drawEyes() {
-                    // Draw ghost body as transparent
-                    context.fillStyle = "rgba(255, 255, 255, 0.3)";
-                    context.fillRect(this.x, this.y, this.width, this.height);
                     
-                    // Draw eyes
-                    const eyeSize = this.width / 4;
-                    const leftEyeX = this.x + this.width/3 - eyeSize/2;
-                    const rightEyeX = this.x + this.width*2/3 - eyeSize/2;
-                    const eyeY = this.y + this.height/3 - eyeSize/2;
-                    const pupilSize = eyeSize/2;
-                    
-                    // White of the eyes
-                    context.fillStyle = "white";
-                    context.beginPath();
-                    context.arc(leftEyeX + eyeSize/2, eyeY + eyeSize/2, eyeSize/2, 0, Math.PI * 2);
-                    context.arc(rightEyeX + eyeSize/2, eyeY + eyeSize/2, eyeSize/2, 0, Math.PI * 2);
-                    context.fill();
-                    
-                    // Pupils
-                    context.fillStyle = "blue";
-                    let pupilOffsetX = 0, pupilOffsetY = 0;
-                    switch (this.direction) {
-                        case 'up': pupilOffsetY = -pupilSize/2; break;
-                        case 'down': pupilOffsetY = pupilSize/2; break;
-                        case 'left': pupilOffsetX = -pupilSize/2; break;
-                        case 'right': pupilOffsetX = pupilSize/2; break;
+                    // Draw eyes (direction indicator)
+                    if (!this.isFrightened) {
+                        context.fillStyle = "white";
+                        // Left eye
+                        context.beginPath();
+                        context.arc(
+                            this.x + this.width/3 + (this.direction === 'left' ? -2 : this.direction === 'right' ? 2 : 0),
+                            this.y + this.height/3 + (this.direction === 'up' ? -2 : this.direction === 'down' ? 2 : 0),
+                            5, 0, Math.PI * 2
+                        );
+                        context.fill();
+                        
+                        // Right eye
+                        context.beginPath();
+                        context.arc(
+                            this.x + this.width*2/3 + (this.direction === 'left' ? -2 : this.direction === 'right' ? 2 : 0),
+                            this.y + this.height/3 + (this.direction === 'up' ? -2 : this.direction === 'down' ? 2 : 0),
+                            5, 0, Math.PI * 2
+                        );
+                        context.fill();
+                        
+                        // Pupils
+                        context.fillStyle = "blue";
+                        // Left pupil
+                        context.beginPath();
+                        context.arc(
+                            this.x + this.width/3 + (this.direction === 'left' ? -4 : this.direction === 'right' ? 4 : 0),
+                            this.y + this.height/3 + (this.direction === 'up' ? -4 : this.direction === 'down' ? 4 : 0),
+                            2, 0, Math.PI * 2
+                        );
+                        context.fill();
+                        
+                        // Right pupil
+                        context.beginPath();
+                        context.arc(
+                            this.x + this.width*2/3 + (this.direction === 'left' ? -4 : this.direction === 'right' ? 4 : 0),
+                            this.y + this.height/3 + (this.direction === 'up' ? -4 : this.direction === 'down' ? 4 : 0),
+                            2, 0, Math.PI * 2
+                        );
+                        context.fill();
                     }
-                    
-                    context.beginPath();
-                    context.arc(leftEyeX + eyeSize/2 + pupilOffsetX, eyeY + eyeSize/2 + pupilOffsetY, pupilSize/2, 0, Math.PI * 2);
-                    context.arc(rightEyeX + eyeSize/2 + pupilOffsetX, eyeY + eyeSize/2 + pupilOffsetY, pupilSize/2, 0, Math.PI * 2);
-                    context.fill();
-                }
-
-                becomeFrightened() {
-                    this.isFrightened = true;
-                    this.isEaten = false;
-                    this.speed = tileSize / 12; // Slow down when frightened
-                    this.direction = this.getOppositeDirection(); // Reverse direction
-                }
-
-                endFrightened() {
-                    this.isFrightened = false;
-                    this.speed = tileSize / 10;
-                    this.image = this.originalImage;
                 }
 
                 eat() {
                     this.isEaten = true;
                     this.isFrightened = false;
-                    this.speed = tileSize / 5; // Move faster when eaten
+                    ghostEatenSound.play();
+                    
+                    // Calculate score based on how many ghosts have been eaten in this frightened mode
+                    const eatenGhosts = Array.from(ghosts).filter(g => g.isEaten).length;
+                    const points = [200, 400, 800, 1600][Math.min(eatenGhosts - 1, 3)];
+                    score += points;
+                    
+                    // Show bonus text
+                    showBonusText(points, this.x, this.y);
                 }
             }
 
-            // Game Functions
+            // Helper Functions
+            function collision(obj1, obj2) {
+                return obj1.x < obj2.x + obj2.width &&
+                       obj1.x + obj1.width > obj2.x &&
+                       obj1.y < obj2.y + obj2.height &&
+                       obj1.y + obj1.height > obj2.y;
+            }
+
             function checkWallCollisions() {
                 // Check Pac-Man wall collisions
                 for (let wall of walls) {
@@ -790,8 +1317,6 @@
                         // Move Pac-Man back
                         pacman.x -= pacman.velocityX;
                         pacman.y -= pacman.velocityY;
-                        pacman.velocityX = 0;
-                        pacman.velocityY = 0;
                         break;
                     }
                 }
@@ -802,9 +1327,17 @@
                     
                     for (let wall of walls) {
                         if (collision(ghost, wall)) {
+                            // Move ghost back
                             ghost.x -= ghost.velocityX;
                             ghost.y -= ghost.velocityY;
-                            ghost.direction = ghost.getRandomDirection();
+                            
+                            // Choose new direction
+                            if (!ghost.isFrightened) {
+                                const possibleDirections = ghost.getPossibleDirections();
+                                if (possibleDirections.length > 0) {
+                                    ghost.direction = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+                                }
+                            }
                             break;
                         }
                     }
@@ -812,17 +1345,15 @@
             }
 
             function checkGhostCollisions() {
+                if (!pacman.isAlive) return;
+                
                 for (let ghost of ghosts) {
                     if (collision(pacman, ghost)) {
-                        if (ghost.isFrightened) {
-                            // Eat ghost
+                        if (ghost.isFrightened && !ghost.isEaten) {
                             ghost.eat();
-                            ghostEatenSound.play();
-                            score += 200 * level; // More points for higher levels
-                        } else if (!ghost.isEaten) {
-                            // Pac-Man dies
+                        } else if (!ghost.isFrightened && !ghost.isEaten) {
                             pacman.die();
-                            return;
+                            break;
                         }
                     }
                 }
@@ -833,9 +1364,9 @@
                     if (collision(pacman, food)) {
                         foods.delete(food);
                         eatSound.play();
-                        score += 10 * level;
+                        score += 10;
                         pelletsEaten++;
-                        return; // Only eat one pellet per frame
+                        break;
                     }
                 }
             }
@@ -845,10 +1376,10 @@
                     if (collision(pacman, pellet)) {
                         powerPellets.delete(pellet);
                         powerPelletSound.play();
-                        score += 50 * level;
+                        score += 50;
                         pelletsEaten++;
                         startFrightenedMode();
-                        return; // Only eat one pellet per frame
+                        break;
                     }
                 }
             }
@@ -856,36 +1387,51 @@
             function startFrightenedMode() {
                 frightenedMode = true;
                 frightenedTimer = FRIGHTENED_DURATION;
+                
                 for (let ghost of ghosts) {
                     if (!ghost.isEaten) {
-                        ghost.becomeFrightened();
+                        ghost.isFrightened = true;
+                        ghost.blinking = false;
                     }
                 }
             }
 
             function endFrightenedMode() {
                 frightenedMode = false;
+                
                 for (let ghost of ghosts) {
-                    ghost.endFrightened();
+                    ghost.isFrightened = false;
+                    ghost.blinking = false;
                 }
             }
 
             function checkLevelCompletion() {
-                if (foods.size === 0 && powerPellets.size === 0) {
-                    level++;
-                    pelletsEaten = 0;
-                    showMessage(`LEVEL ${level}`, 2000, () => {
-                        loadMap();
-                        resetPositions();
-                    });
+                if (pelletsEaten >= totalPellets) {
+                    levelComplete();
                 }
             }
 
-            function collision(a, b) {
-                return a.x < b.x + b.width &&
-                       a.x + a.width > b.x &&
-                       a.y < b.y + b.height &&
-                       a.y + a.height > b.y;
+            function levelComplete() {
+                gameStarted = false;
+                stopTimer();
+                winSound.play();
+                level++;
+                
+                // Increase difficulty slightly
+                pacman.speed *= 1.05;
+                for (let ghost of ghosts) {
+                    ghost.speed *= 1.03;
+                }
+                
+                // Reset pellets
+                pelletsEaten = 0;
+                loadMap();
+                
+                // Show level complete message
+                showMessage(`LEVEL ${level-1} COMPLETE!`, 2000, () => {
+                    levelUpSound.play();
+                    showMessage("READY!", 1500, startGame);
+                });
             }
 
             function resetPositions() {
@@ -893,30 +1439,38 @@
                 pacman.isAlive = true;
                 pacman.direction = 'right';
                 pacman.nextDirection = 'right';
-                pacman.velocityX = 0;
-                pacman.velocityY = 0;
+                pacman.updateVelocity();
                 
                 for (let ghost of ghosts) {
                     ghost.reset();
-                    ghost.isEaten = false;
                     ghost.isFrightened = false;
+                    ghost.isEaten = false;
+                    ghost.image = ghost.originalImage;
                     ghost.direction = ghost.getRandomDirection();
-                    ghost.behaviorTimer = 0;
-                    ghost.behavior = ghost.color === 'red' || ghost.color === 'blue' ? 'chase' : 'scatter';
                 }
-                
-                endFrightenedMode();
             }
 
             function resetGame() {
+                gameOver = false;
                 score = 0;
                 lives = 3;
                 level = 1;
                 pelletsEaten = 0;
-                gameOver = false;
-                updateLivesDisplay();
+                
+                // Reset speeds
+                pacman.speed = tileSize / 8;
+                const baseSpeed = tileSize / 10;
+                for (let ghost of ghosts) {
+                    ghost.speed = baseSpeed;
+                }
+                
                 loadMap();
-                showMessage("READY!", 2000, startGame);
+                updateLivesDisplay();
+                resetPositions();
+                
+                // Return to start screen
+                document.getElementById("start-screen").style.display = "flex";
+                document.getElementById("timer-display").style.display = "none";
             }
 
             function updateLivesDisplay() {
@@ -926,6 +1480,7 @@
                 for (let i = 0; i < lives; i++) {
                     const life = document.createElement("div");
                     life.className = "life";
+                    life.style.backgroundImage = `url('pacmanRight.png')`;
                     livesDisplay.appendChild(life);
                 }
             }
@@ -941,30 +1496,142 @@
                 }, duration);
             }
 
-            // Event Listeners
-            document.addEventListener("keydown", (e) => {
-                if (gameOver && e.code === "Space") {
-                    resetGame();
-                    return;
+            function showBonusText(points, x, y) {
+                const bonus = document.createElement("div");
+                bonus.className = "fruit-bonus";
+                bonus.textContent = points;
+                bonus.style.left = `${x}px`;
+                bonus.style.top = `${y}px`;
+                document.getElementById("game-container").appendChild(bonus);
+                
+                setTimeout(() => {
+                    bonus.remove();
+                }, 1500);
+            }
+
+            function createConfetti() {
+                const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'];
+                
+                for (let i = 0; i < 100; i++) {
+                    const confetti = document.createElement("div");
+                    confetti.className = "confetti";
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.animationDelay = `${Math.random() * 2}s`;
+                    document.getElementById("game-container").appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 3000);
+                }
+            }
+
+            function showHowToPlay() {
+                document.getElementById("how-to-play").style.display = "block";
+            }
+
+            function hideHowToPlay() {
+                document.getElementById("how-to-play").style.display = "none";
+            }
+
+            function showHighScores() {
+                document.getElementById("high-scores").style.display = "block";
+                renderHighScores();
+            }
+
+            function hideHighScores() {
+                document.getElementById("high-scores").style.display = "none";
+            }
+
+            function loadHighScores() {
+                const scores = JSON.parse(localStorage.getItem('pacmanHighScores')) || [];
+                highScore = scores.length > 0 ? scores[0].score : 0;
+                document.getElementById("high-score").textContent = `HIGH: ${highScore}`;
+            }
+
+            function saveHighScore() {
+                if (score === 0) return;
+                
+                const scores = JSON.parse(localStorage.getItem('pacmanHighScores')) || [];
+                const now = new Date();
+                
+                scores.push({
+                    name: playerName,
+                    score: score,
+                    level: level,
+                    difficulty: difficulty,
+                    date: now.toLocaleDateString(),
+                    timestamp: now.getTime()
+                });
+                
+                // Sort by score (descending)
+                scores.sort((a, b) => b.score - a.score);
+                
+                // Keep only top 10 scores
+                if (scores.length > 10) {
+                    scores.length = 10;
                 }
                 
-                switch (e.code) {
-                    case "ArrowUp":
-                    case "KeyW":
+                localStorage.setItem('pacmanHighScores', JSON.stringify(scores));
+                highScore = scores[0].score;
+            }
+
+            function renderHighScores() {
+                const scores = JSON.parse(localStorage.getItem('pacmanHighScores')) || [];
+                const tbody = document.getElementById("scores-body");
+                tbody.innerHTML = '';
+                
+                scores.forEach((score, index) => {
+                    const row = document.createElement("tr");
+                    
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${score.name}</td>
+                        <td>${score.score}</td>
+                        <td>${score.level}</td>
+                        <td>${score.difficulty.charAt(0).toUpperCase() + score.difficulty.slice(1)}</td>
+                        <td>${score.date}</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Keyboard Controls
+            document.addEventListener('keydown', (e) => {
+                if (!gameStarted || !pacman.isAlive) return;
+                
+                switch (e.key) {
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
                         pacman.updateDirection('up');
                         break;
-                    case "ArrowDown":
-                    case "KeyS":
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
                         pacman.updateDirection('down');
                         break;
-                    case "ArrowLeft":
-                    case "KeyA":
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
                         pacman.updateDirection('left');
                         break;
-                    case "ArrowRight":
-                    case "KeyD":
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
                         pacman.updateDirection('right');
                         break;
+                    case ' ':
+                        if (gameOver) resetGame();
+                        break;
+                }
+            });
+
+            // Prevent arrow keys from scrolling the page
+            window.addEventListener('keydown', function(e) {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
                 }
             });
         </script>
