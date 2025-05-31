@@ -159,6 +159,8 @@ function loadMap() {
             }
             else if (tileMapChar == 'P') {
                 pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
+                pacman.direction = 'R';
+                pacman.nextDirection = null;
             }
             else if (tileMapChar == ' ') {
                 foods.add(new Block(null, x + 14, y + 14, 4, 4));
@@ -213,6 +215,21 @@ function move() {
     pacman.x += pacman.velocityX;
     pacman.y += pacman.velocityY;
 
+    // Check if we can now move in the queued direction
+    if (pacman.nextDirection && canMoveInDirection(pacman.nextDirection)) {
+        pacman.direction = pacman.nextDirection;
+        updatePacmanVelocity(pacman.nextDirection);
+        pacman.nextDirection = null;
+        
+        // Update image based on direction
+        switch(pacman.direction) {
+            case 'U': pacman.image = pacmanUpImage; break;
+            case 'D': pacman.image = pacmanDownImage; break;
+            case 'L': pacman.image = pacmanLeftImage; break;
+            case 'R': pacman.image = pacmanRightImage; break;
+        }
+    }
+
     // Wall collision detection with improved precision
     let pacmanHitWall = false;
     walls.forEach(wall => {
@@ -262,6 +279,7 @@ function move() {
             resetPositions();
         }
     });
+
     // Food collection
     foods.forEach(food => {
         if (isColliding(pacman, food)) {
@@ -276,54 +294,122 @@ function move() {
     }
 }
 
-
-// Replace the current movePacman function with this improved version
 function movePacman(e) {
     if (gameOver || !gameStarted) return;
 
-    // First stop any current movement
-    pacman.velocityX = 0;
-    pacman.velocityY = 0;
-
-    // Determine new direction based on key press
+    // Store the requested direction
+    let requestedDirection;
+    let newImage;
+    
     switch(e.code) {
         case "ArrowUp":
         case "KeyW":
-            pacman.image = pacmanUpImage;
-            pacman.velocityY = -ghostSpeed;
-            pacman.direction = 'U';
+            requestedDirection = 'U';
+            newImage = pacmanUpImage;
             break;
         case "ArrowDown":
         case "KeyS":
-            pacman.image = pacmanDownImage;
-            pacman.velocityY = ghostSpeed;
-            pacman.direction = 'D';
+            requestedDirection = 'D';
+            newImage = pacmanDownImage;
             break;
         case "ArrowLeft":
         case "KeyA":
-            pacman.image = pacmanLeftImage;
-            pacman.velocityX = -ghostSpeed;
-            pacman.direction = 'L';
+            requestedDirection = 'L';
+            newImage = pacmanLeftImage;
             break;
         case "ArrowRight":
         case "KeyD":
-            pacman.image = pacmanRightImage;
+            requestedDirection = 'R';
+            newImage = pacmanRightImage;
+            break;
+        default:
+            return;
+    }
+
+    // Update direction and image
+    pacman.direction = requestedDirection;
+    pacman.image = newImage;
+    
+    // Only update velocity if the direction is possible
+    if (canMoveInDirection(requestedDirection)) {
+        updatePacmanVelocity(requestedDirection);
+        pacman.nextDirection = null; // Clear any queued direction
+    } else {
+        // Queue the direction for when it becomes possible
+        pacman.nextDirection = requestedDirection;
+    }
+}
+
+function canMoveInDirection(direction) {
+    // Calculate the center position of Pac-Man
+    const centerX = pacman.x + pacman.width/2;
+    const centerY = pacman.y + pacman.height/2;
+    
+    // Calculate the tile coordinates
+    const tileX = Math.floor(centerX / tileSize);
+    const tileY = Math.floor(centerY / tileSize);
+    
+    // Check the adjacent tile in the requested direction
+    switch(direction) {
+        case 'U': return !isWallAt(tileX, tileY - 1);
+        case 'D': return !isWallAt(tileX, tileY + 1);
+        case 'L': return !isWallAt(tileX - 1, tileY);
+        case 'R': return !isWallAt(tileX + 1, tileY);
+    }
+    return false;
+}
+
+function isWallAt(tileX, tileY) {
+    // Check if coordinates are out of bounds
+    if (tileX < 0 || tileX >= columnCount || tileY < 0 || tileY >= rowCount) {
+        return true;
+    }
+    
+    // Check if the tile is a wall
+    return tileMap[tileY][tileX] === 'X';
+}
+
+function updatePacmanVelocity(direction) {
+    pacman.velocityX = 0;
+    pacman.velocityY = 0;
+    
+    switch(direction) {
+        case 'U':
+            pacman.velocityY = -ghostSpeed;
+            break;
+        case 'D':
+            pacman.velocityY = ghostSpeed;
+            break;
+        case 'L':
+            pacman.velocityX = -ghostSpeed;
+            break;
+        case 'R':
             pacman.velocityX = ghostSpeed;
-            pacman.direction = 'R';
             break;
     }
 }
-function collision(a, b) {
-    return a.x < b.x + b.width &&
-           a.x + a.width > b.x &&
-           a.y < b.y + b.height &&
-           a.y + a.height > b.y;
+
+function isColliding(a, b) {
+    const aCenterX = a.x + a.width / 2;
+    const aCenterY = a.y + a.height / 2;
+    const bCenterX = b.x + b.width / 2;
+    const bCenterY = b.y + b.height / 2;
+
+    const horizontalDistance = Math.abs(aCenterX - bCenterX);
+    const verticalDistance = Math.abs(aCenterY - bCenterY);
+
+    const minHorizontalDistance = (a.width + b.width) / 2;
+    const minVerticalDistance = (a.height + b.height) / 2;
+
+    return horizontalDistance < minHorizontalDistance && 
+           verticalDistance < minVerticalDistance;
 }
 
 function resetPositions() {
     pacman.reset();
     pacman.velocityX = 0;
     pacman.velocityY = 0;
+    pacman.nextDirection = null;
     ghosts.forEach(ghost => {
         ghost.reset();
         ghost.updateDirection(directions[Math.floor(Math.random() * 4)]);
@@ -505,6 +591,7 @@ class Block {
         this.direction = 'R';
         this.velocityX = 0;
         this.velocityY = 0;
+        this.nextDirection = null;
     }
 
     updateDirection(direction) {
@@ -538,21 +625,13 @@ class Block {
         this.y = this.startY;
         this.velocityX = 0;
         this.velocityY = 0;
+        this.nextDirection = null;
     }
-}
-// Add this new collision detection function
-function isColliding(a, b) {
-    const aCenterX = a.x + a.width / 2;
-    const aCenterY = a.y + a.height / 2;
-    const bCenterX = b.x + b.width / 2;
-    const bCenterY = b.y + b.height / 2;
 
-    const horizontalDistance = Math.abs(aCenterX - bCenterX);
-    const verticalDistance = Math.abs(aCenterY - bCenterY);
-
-    const minHorizontalDistance = (a.width + b.width) / 2;
-    const minVerticalDistance = (a.height + b.height) / 2;
-
-    return horizontalDistance < minHorizontalDistance && 
-           verticalDistance < minVerticalDistance;
+    getCenter() {
+        return {
+            x: this.x + this.width/2,
+            y: this.y + this.height/2
+        };
+    }
 }
