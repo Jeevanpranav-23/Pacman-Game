@@ -205,43 +205,40 @@ function draw() {
 }
 
 function move() {
-    // Store previous position in case of collision
+    // Store previous position for collision handling
     const prevX = pacman.x;
     const prevY = pacman.y;
-    
+
     // Move pacman
     pacman.x += pacman.velocityX;
     pacman.y += pacman.velocityY;
 
-    // Wall collision for pacman
+    // Wall collision detection with improved precision
     let pacmanHitWall = false;
     walls.forEach(wall => {
-        if (collision(pacman, wall)) {
+        if (isColliding(pacman, wall)) {
             pacmanHitWall = true;
         }
     });
-    
+
+    // If collision occurred, revert to previous position
     if (pacmanHitWall) {
         pacman.x = prevX;
         pacman.y = prevY;
     }
 
-    // Boundary check
-    if (pacman.x < 0) pacman.x = 0;
-    if (pacman.x + pacman.width > boardWidth) pacman.x = boardWidth - pacman.width;
-    if (pacman.y < 0) pacman.y = 0;
-    if (pacman.y + pacman.height > boardHeight) pacman.y = boardHeight - pacman.height;
+    // Improved boundary checking
+    pacman.x = Math.max(0, Math.min(pacman.x, boardWidth - pacman.width));
+    pacman.y = Math.max(0, Math.min(pacman.y, boardHeight - pacman.height));
 
     // Ghost movement and collision
     ghosts.forEach(ghost => {
-        // Move ghost
         ghost.x += ghost.velocityX;
         ghost.y += ghost.velocityY;
 
-        // Wall collision for ghost
         let ghostHitWall = false;
         walls.forEach(wall => {
-            if (collision(ghost, wall)) {
+            if (isColliding(ghost, wall)) {
                 ghostHitWall = true;
             }
         });
@@ -252,8 +249,7 @@ function move() {
             ghost.updateDirection(directions[Math.floor(Math.random() * 4)]);
         }
 
-        // Ghost-pacman collision
-        if (collision(ghost, pacman)) {
+        if (isColliding(ghost, pacman)) {
             lives--;
             if (lives <= 0) {
                 gameOver = true;
@@ -266,7 +262,7 @@ function move() {
 
     // Food collection
     foods.forEach(food => {
-        if (collision(pacman, food)) {
+        if (isColliding(pacman, food)) {
             foods.delete(food);
             score += 10;
         }
@@ -281,65 +277,49 @@ function move() {
 function movePacman(e) {
     if (gameOver || !gameStarted) return;
 
-    // Store the requested direction
-    let requestedDirection;
-    let newImage;
-    
+    // First stop any current movement
+    pacman.velocityX = 0;
+    pacman.velocityY = 0;
+
+    // Determine new direction based on key press
     switch(e.code) {
         case "ArrowUp":
         case "KeyW":
-            requestedDirection = 'U';
-            newImage = pacmanUpImage;
+            pacman.image = pacmanUpImage;
+            pacman.velocityY = -ghostSpeed;
             break;
         case "ArrowDown":
         case "KeyS":
-            requestedDirection = 'D';
-            newImage = pacmanDownImage;
+            pacman.image = pacmanDownImage;
+            pacman.velocityY = ghostSpeed;
             break;
         case "ArrowLeft":
         case "KeyA":
-            requestedDirection = 'L';
-            newImage = pacmanLeftImage;
+            pacman.image = pacmanLeftImage;
+            pacman.velocityX = -ghostSpeed;
             break;
         case "ArrowRight":
         case "KeyD":
-            requestedDirection = 'R';
-            newImage = pacmanRightImage;
-            break;
-        default:
-            return;
-    }
-
-    // Update direction and image
-    pacman.direction = requestedDirection;
-    pacman.image = newImage;
-    
-    // Update velocity based on new direction
-    switch(requestedDirection) {
-        case 'U':
-            pacman.velocityX = 0;
-            pacman.velocityY = -ghostSpeed;
-            break;
-        case 'D':
-            pacman.velocityX = 0;
-            pacman.velocityY = ghostSpeed;
-            break;
-        case 'L':
-            pacman.velocityX = -ghostSpeed;
-            pacman.velocityY = 0;
-            break;
-        case 'R':
+            pacman.image = pacmanRightImage;
             pacman.velocityX = ghostSpeed;
-            pacman.velocityY = 0;
             break;
     }
 }
 
-function collision(a, b) {
-    return a.x < b.x + b.width &&
-           a.x + a.width > b.x &&
-           a.y < b.y + b.height &&
-           a.y + a.height > b.y;
+function isColliding(a, b) {
+    const aCenterX = a.x + a.width / 2;
+    const aCenterY = a.y + a.height / 2;
+    const bCenterX = b.x + b.width / 2;
+    const bCenterY = b.y + b.height / 2;
+
+    const horizontalDistance = Math.abs(aCenterX - bCenterX);
+    const verticalDistance = Math.abs(aCenterY - bCenterY);
+
+    const minHorizontalDistance = (a.width + b.width) / 2;
+    const minVerticalDistance = (a.height + b.height) / 2;
+
+    return horizontalDistance < minHorizontalDistance && 
+           verticalDistance < minVerticalDistance;
 }
 
 function resetPositions() {
@@ -527,31 +507,33 @@ class Block {
         this.direction = 'R';
         this.velocityX = 0;
         this.velocityY = 0;
+        this.nextDirection = null;
     }
 
     updateDirection(direction) {
-        this.direction = direction;
-        this.updateVelocity();
+        this.nextDirection = direction;
     }
 
-    updateVelocity() {
-        switch(this.direction) {
-            case 'U':
-                this.velocityX = 0;
-                this.velocityY = -ghostSpeed;
-                break;
-            case 'D':
-                this.velocityX = 0;
-                this.velocityY = ghostSpeed;
-                break;
-            case 'L':
-                this.velocityX = -ghostSpeed;
-                this.velocityY = 0;
-                break;
-            case 'R':
-                this.velocityX = ghostSpeed;
-                this.velocityY = 0;
-                break;
+    applyMovement() {
+        if (this.nextDirection) {
+            this.velocityX = 0;
+            this.velocityY = 0;
+            
+            switch(this.nextDirection) {
+                case 'U':
+                    this.velocityY = -ghostSpeed;
+                    break;
+                case 'D':
+                    this.velocityY = ghostSpeed;
+                    break;
+                case 'L':
+                    this.velocityX = -ghostSpeed;
+                    break;
+                case 'R':
+                    this.velocityX = ghostSpeed;
+                    break;
+            }
+            this.nextDirection = null;
         }
     }
 
@@ -560,5 +542,6 @@ class Block {
         this.y = this.startY;
         this.velocityX = 0;
         this.velocityY = 0;
+        this.nextDirection = null;
     }
 }
