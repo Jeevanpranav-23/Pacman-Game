@@ -1,24 +1,76 @@
+// Enhanced Pacman Game - JavaScript Only
+
 // Game board setup
-let board;
+const canvas = document.createElement('canvas');
+document.body.appendChild(canvas);
+canvas.style.display = 'block';
+canvas.style.margin = 'auto';
+canvas.style.background = 'black';
+document.body.style.backgroundColor = '#111';
+document.body.style.margin = '0';
+document.body.style.padding = '20px 0';
+document.body.style.fontFamily = 'Arial, sans-serif';
+
 const rowCount = 21;
 const columnCount = 19;
 const tileSize = 32;
 const boardWidth = columnCount * tileSize;
 const boardHeight = rowCount * tileSize;
-let context;
+canvas.width = boardWidth;
+canvas.height = boardHeight;
+const ctx = canvas.getContext('2d');
 
 // Game elements
-let blueGhostImage = new Image();
-let orangeGhostImage = new Image();
-let pinkGhostImage = new Image();
-let redGhostImage = new Image();
-let pacmanUpImage = new Image();
-let pacmanDownImage = new Image();
-let pacmanLeftImage = new Image();
-let pacmanRightImage = new Image();
-let wallImage = new Image();
+const assets = {
+    wall: new Image(),
+    blueGhost: new Image(),
+    orangeGhost: new Image(),
+    pinkGhost: new Image(),
+    redGhost: new Image(),
+    scaredGhost: new Image(),
+    scaredGhostEnding: new Image(),
+    pacmanUp: new Image(),
+    pacmanDown: new Image(),
+    pacmanLeft: new Image(),
+    pacmanRight: new Image(),
+    pellet: new Image(),
+    powerPellet: new Image()
+};
+
+// Load assets (replace with your actual paths)
+Object.keys(assets).forEach(key => {
+    assets[key].src = `${key}.png`;
+});
 
 // Game state
+const gameState = {
+    walls: new Set(),
+    foods: new Set(),
+    powerPellets: new Set(),
+    ghosts: new Set(),
+    pacman: null,
+    score: 0,
+    lives: 3,
+    level: 1,
+    gameOver: false,
+    gameStarted: false,
+    powerPelletActive: false,
+    powerPelletTimer: 0,
+    ghostEatenMultiplier: 1,
+    animationFrame: 0,
+    ghostSpeed: tileSize / 8,
+    pacmanSpeed: tileSize / 6,
+    levelTimeLimit: 120,
+    timeLeft: 120,
+    powerPelletDuration: 10,
+    pacmanAnimationSpeed: 5,
+    ghostAnimationSpeed: 10,
+    pacmanMouthOpen: true,
+    nextDirection: null,
+    currentDirection: null
+};
+
+// Tile map
 const tileMap = [
     "XXXXXXXXXXXXXXXXXXX",
     "X        X        X",
@@ -40,462 +92,11 @@ const tileMap = [
     "X    X   X   X    X",
     "X XXXXXX X XXXXXX X",
     "X                 X",
-    "XXXXXXXXXXXXXXXXXXX" 
+    "XXXXXXXXXXXXXXXXXXX"
 ];
 
-const walls = new Set();
-const foods = new Set();
-const ghosts = new Set();
-let pacman;
-
-const directions = ['U', 'D', 'L', 'R'];
-let score = 0;
-let lives = 3;
-let level = 1;
-let gameOver = false;
-let gameStarted = false;
-let difficulty = "medium";
-let playerName = "Player";
-let ghostSpeed = tileSize / 4;
-let gameInterval;
-let levelTimeLimit = 120;
-let timeLeft = levelTimeLimit;
-let timerInterval;
-
-// DOM elements
-const startScreen = document.getElementById("start-screen");
-const howToPlayScreen = document.getElementById("how-to-play");
-const difficultyScreen = document.getElementById("difficulty-screen");
-const nameScreen = document.getElementById("name-screen");
-const winScreen = document.getElementById("win-screen");
-const highScoresTable = document.getElementById("high-scores");
-const playerNameInput = document.getElementById("player-name");
-const gameOverlay = document.getElementById("game-overlay");
-const scoreDisplay = document.getElementById("score-display");
-const livesDisplay = document.getElementById("lives-display");
-const levelDisplay = document.getElementById("level-display");
-const playerDisplay = document.getElementById("player-display");
-const difficultyDisplay = document.getElementById("difficulty-display");
-const winMessage = document.getElementById("win-message");
-
-// Mobile controls
-const upBtn = document.getElementById("up-btn");
-const downBtn = document.getElementById("down-btn");
-const leftBtn = document.getElementById("left-btn");
-const rightBtn = document.getElementById("right-btn");
-
-// Initialize game
-window.onload = function() {
-    board = document.getElementById("board");
-    board.height = boardHeight;
-    board.width = boardWidth;
-    context = board.getContext("2d");
-
-    // Set up event listeners
-    document.getElementById("start-btn").addEventListener("click", showDifficultyScreen);
-    document.getElementById("how-to-play-btn").addEventListener("click", showHowToPlay);
-    document.getElementById("high-scores-btn").addEventListener("click", showHighScores);
-    document.getElementById("back-btn").addEventListener("click", showStartScreen);
-    document.getElementById("difficulty-back-btn").addEventListener("click", showStartScreen);
-    document.getElementById("name-back-btn").addEventListener("click", showDifficultyScreen);
-    document.getElementById("start-game-btn").addEventListener("click", startGame);
-    document.getElementById("play-again-btn").addEventListener("click", restartGame);
-    document.getElementById("main-menu-btn").addEventListener("click", returnToMainMenu);
-    document.getElementById("close-scores-btn").addEventListener("click", closeHighScores);
-    
-    // Mobile controls
-    upBtn.addEventListener("touchstart", () => movePacman({code: "ArrowUp"}), {passive: false});
-    downBtn.addEventListener("touchstart", () => movePacman({code: "ArrowDown"}), {passive: false});
-    leftBtn.addEventListener("touchstart", () => movePacman({code: "ArrowLeft"}), {passive: false});
-    rightBtn.addEventListener("touchstart", () => movePacman({code: "ArrowRight"}), {passive: false});
-    
-    // Load images
-    loadImages();
-    
-    // Check if mobile device
-    if (/Mobi|Android/i.test(navigator.userAgent)) {
-        document.getElementById("mobile-controls").style.display = "flex";
-    }
-};
-
-function loadImages() {
-    wallImage.src = "wall.png";
-    blueGhostImage.src = "blueGhost.png";
-    orangeGhostImage.src = "orangeGhost.png";
-    pinkGhostImage.src = "pinkGhost.png";
-    redGhostImage.src = "redGhost.png";
-    pacmanUpImage.src = "pacmanUp.png";
-    pacmanDownImage.src = "pacmanDown.png";
-    pacmanLeftImage.src = "pacmanLeft.png";
-    pacmanRightImage.src = "pacmanRight.png";
-}
-
-function loadMap() {
-    walls.clear();
-    foods.clear();
-    ghosts.clear();
-
-    for (let r = 0; r < rowCount; r++) {
-        for (let c = 0; c < columnCount; c++) {
-            const row = tileMap[r];
-            const tileMapChar = row[c];
-            const x = c * tileSize;
-            const y = r * tileSize;
-
-            if (tileMapChar == 'X') {
-                walls.add(new Block(wallImage, x, y, tileSize, tileSize));
-            }
-            else if (tileMapChar == 'b') {
-                ghosts.add(new Block(blueGhostImage, x, y, tileSize, tileSize));
-            }
-            else if (tileMapChar == 'o') {
-                ghosts.add(new Block(orangeGhostImage, x, y, tileSize, tileSize));
-            }
-            else if (tileMapChar == 'p') {
-                ghosts.add(new Block(pinkGhostImage, x, y, tileSize, tileSize));
-            }
-            else if (tileMapChar == 'r') {
-                ghosts.add(new Block(redGhostImage, x, y, tileSize, tileSize));
-            }
-            else if (tileMapChar == 'P') {
-                pacman = new Block(pacmanRightImage, x, y, tileSize, tileSize);
-            }
-            else if (tileMapChar == ' ') {
-                foods.add(new Block(null, x + 14, y + 14, 4, 4));
-            }
-        }
-    }
-}
-
-function update() {
-    if (gameOver) return;
-    
-    move();
-    draw();
-}
-
-function draw() {
-    context.clearRect(0, 0, board.width, board.height);
-    
-    // Draw walls
-    walls.forEach(wall => {
-        context.drawImage(wall.image, wall.x, wall.y, wall.width, wall.height);
-    });
-
-    // Draw food
-    context.fillStyle = "white";
-    foods.forEach(food => {
-        context.fillRect(food.x, food.y, food.width, food.height);
-    });
-
-    // Draw ghosts
-    ghosts.forEach(ghost => {
-        context.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height);
-    });
-
-    // Draw pacman
-    context.drawImage(pacman.image, pacman.x, pacman.y, pacman.width, pacman.height);
-
-    // Update displays
-    scoreDisplay.textContent = `SCORE: ${score}`;
-    livesDisplay.textContent = `LIVES: ${lives}`;
-    levelDisplay.textContent = `LEVEL: ${level}`;
-    playerDisplay.textContent = playerName;
-    difficultyDisplay.textContent = difficulty.toUpperCase();
-}
-
-function move() {
-    // Store previous position for collision handling
-    const prevX = pacman.x;
-    const prevY = pacman.y;
-
-    // Move pacman
-    pacman.x += pacman.velocityX;
-    pacman.y += pacman.velocityY;
-
-    // Wall collision detection with improved precision
-    let pacmanHitWall = false;
-    walls.forEach(wall => {
-        if (isColliding(pacman, wall)) {
-            pacmanHitWall = true;
-        }
-    });
-
-    // If collision occurred, revert to previous position
-    if (pacmanHitWall) {
-        pacman.x = prevX;
-        pacman.y = prevY;
-    }
-
-    // Improved boundary checking
-    pacman.x = Math.max(0, Math.min(pacman.x, boardWidth - pacman.width));
-    pacman.y = Math.max(0, Math.min(pacman.y, boardHeight - pacman.height));
-
-    // Ghost movement and collision
-    ghosts.forEach(ghost => {
-        ghost.x += ghost.velocityX;
-        ghost.y += ghost.velocityY;
-
-        let ghostHitWall = false;
-        walls.forEach(wall => {
-            if (isColliding(ghost, wall)) {
-                ghostHitWall = true;
-            }
-        });
-
-        if (ghostHitWall || ghost.x <= 0 || ghost.x + ghost.width >= boardWidth) {
-            ghost.x -= ghost.velocityX;
-            ghost.y -= ghost.velocityY;
-            ghost.updateDirection(directions[Math.floor(Math.random() * 4)]);
-        }
-
-        if (isColliding(ghost, pacman)) {
-            lives--;
-            if (lives <= 0) {
-                gameOver = true;
-                endGame(false);
-                return;
-            }
-            resetPositions();
-        }
-    });
-
-    // Food collection
-    foods.forEach(food => {
-        if (isColliding(pacman, food)) {
-            foods.delete(food);
-            score += 10;
-        }
-    });
-
-    // Level completion
-    if (foods.size === 0) {
-        levelComplete();
-    }
-}
-
-function movePacman(e) {
-    if (gameOver || !gameStarted) return;
-
-    // First stop any current movement
-    pacman.velocityX = 0;
-    pacman.velocityY = 0;
-
-    // Determine new direction based on key press
-    switch(e.code) {
-        case "ArrowUp":
-        case "KeyW":
-            pacman.image = pacmanUpImage;
-            pacman.velocityY = -ghostSpeed;
-            break;
-        case "ArrowDown":
-        case "KeyS":
-            pacman.image = pacmanDownImage;
-            pacman.velocityY = ghostSpeed;
-            break;
-        case "ArrowLeft":
-        case "KeyA":
-            pacman.image = pacmanLeftImage;
-            pacman.velocityX = -ghostSpeed;
-            break;
-        case "ArrowRight":
-        case "KeyD":
-            pacman.image = pacmanRightImage;
-            pacman.velocityX = ghostSpeed;
-            break;
-    }
-}
-
-function isColliding(a, b) {
-    const aCenterX = a.x + a.width / 2;
-    const aCenterY = a.y + a.height / 2;
-    const bCenterX = b.x + b.width / 2;
-    const bCenterY = b.y + b.height / 2;
-
-    const horizontalDistance = Math.abs(aCenterX - bCenterX);
-    const verticalDistance = Math.abs(aCenterY - bCenterY);
-
-    const minHorizontalDistance = (a.width + b.width) / 2;
-    const minVerticalDistance = (a.height + b.height) / 2;
-
-    return horizontalDistance < minHorizontalDistance && 
-           verticalDistance < minVerticalDistance;
-}
-
-function resetPositions() {
-    pacman.reset();
-    pacman.velocityX = 0;
-    pacman.velocityY = 0;
-    ghosts.forEach(ghost => {
-        ghost.reset();
-        ghost.updateDirection(directions[Math.floor(Math.random() * 4)]);
-    });
-}
-
-function levelComplete() {
-    level++;
-    timeLeft = levelTimeLimit;
-    clearInterval(timerInterval);
-    startTimer();
-    
-    // Increase difficulty
-    ghostSpeed = Math.min(ghostSpeed + 1, tileSize / 2);
-    
-    loadMap();
-    resetPositions();
-}
-
-function startGame() {
-    playerName = playerNameInput.value.trim() || "Player";
-    gameOverlay.style.display = "none";
-    gameStarted = true;
-    gameOver = false;
-    score = 0;
-    lives = 3;
-    level = 1;
-    
-    // Set difficulty
-    switch(difficulty) {
-        case "easy":
-            ghostSpeed = tileSize / 5;
-            levelTimeLimit = 150;
-            break;
-        case "medium":
-            ghostSpeed = tileSize / 4;
-            levelTimeLimit = 120;
-            break;
-        case "hard":
-            ghostSpeed = tileSize / 3;
-            levelTimeLimit = 90;
-            break;
-    }
-    timeLeft = levelTimeLimit;
-    
-    loadMap();
-    resetPositions();
-    
-    // Start game loop
-    clearInterval(gameInterval);
-    gameInterval = setInterval(update, 1000/20); // 20 FPS
-    
-    // Start timer
-    startTimer();
-}
-
-function startTimer() {
-    clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-        timeLeft--;
-        if (timeLeft <= 0) {
-            lives--;
-            if (lives <= 0) {
-                endGame(false);
-            } else {
-                resetPositions();
-                timeLeft = levelTimeLimit;
-            }
-        }
-    }, 1000);
-}
-
-function endGame(won) {
-    gameOver = true;
-    gameStarted = false;
-    clearInterval(gameInterval);
-    clearInterval(timerInterval);
-    
-    winMessage.textContent = won ? `You won! Final Score: ${score}` : `Game Over! Final Score: ${score}`;
-    winScreen.style.display = "block";
-    gameOverlay.style.display = "flex";
-    
-    saveHighScore();
-}
-
-function restartGame() {
-    winScreen.style.display = "none";
-    startGame();
-}
-
-function returnToMainMenu() {
-    winScreen.style.display = "none";
-    showStartScreen();
-}
-
-function saveHighScore() {
-    let scores = JSON.parse(localStorage.getItem("pacmanHighScores")) || [];
-    scores.push({
-        name: playerName,
-        score: score,
-        difficulty: difficulty,
-        date: new Date().toLocaleDateString()
-    });
-    
-    scores.sort((a, b) => b.score - a.score);
-    scores = scores.slice(0, 10);
-    localStorage.setItem("pacmanHighScores", JSON.stringify(scores));
-}
-
-function showHighScores() {
-    const scores = JSON.parse(localStorage.getItem("pacmanHighScores")) || [];
-    const scoresBody = document.getElementById("scores-body");
-    scoresBody.innerHTML = "";
-    
-    scores.forEach((score, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${score.name}</td>
-            <td>${score.score}</td>
-            <td>${score.difficulty.toUpperCase()}</td>
-            <td>${score.date}</td>
-        `;
-        scoresBody.appendChild(row);
-    });
-    
-    highScoresTable.style.display = "block";
-    gameOverlay.style.display = "flex";
-}
-
-function closeHighScores() {
-    highScoresTable.style.display = "none";
-    gameOverlay.style.display = gameStarted ? "none" : "flex";
-}
-
-function showStartScreen() {
-    startScreen.style.display = "block";
-    howToPlayScreen.style.display = "none";
-    difficultyScreen.style.display = "none";
-    nameScreen.style.display = "none";
-    winScreen.style.display = "none";
-}
-
-function showHowToPlay() {
-    startScreen.style.display = "none";
-    howToPlayScreen.style.display = "block";
-}
-
-function showDifficultyScreen() {
-    startScreen.style.display = "none";
-    difficultyScreen.style.display = "block";
-}
-
-function showNameScreen() {
-    difficultyScreen.style.display = "none";
-    nameScreen.style.display = "block";
-}
-
-// Difficulty buttons
-document.querySelectorAll(".difficulty-btn").forEach(btn => {
-    btn.addEventListener("click", function() {
-        difficulty = this.dataset.difficulty;
-        showNameScreen();
-    });
-});
-
-// Keyboard controls
-document.addEventListener("keydown", movePacman);
-
-class Block {
+// Game classes
+class GameObject {
     constructor(image, x, y, width, height) {
         this.image = image;
         this.x = x;
@@ -504,37 +105,8 @@ class Block {
         this.height = height;
         this.startX = x;
         this.startY = y;
-        this.direction = 'R';
         this.velocityX = 0;
         this.velocityY = 0;
-        this.nextDirection = null;
-    }
-
-    updateDirection(direction) {
-        this.nextDirection = direction;
-    }
-
-    applyMovement() {
-        if (this.nextDirection) {
-            this.velocityX = 0;
-            this.velocityY = 0;
-            
-            switch(this.nextDirection) {
-                case 'U':
-                    this.velocityY = -ghostSpeed;
-                    break;
-                case 'D':
-                    this.velocityY = ghostSpeed;
-                    break;
-                case 'L':
-                    this.velocityX = -ghostSpeed;
-                    break;
-                case 'R':
-                    this.velocityX = ghostSpeed;
-                    break;
-            }
-            this.nextDirection = null;
-        }
     }
 
     reset() {
@@ -542,6 +114,407 @@ class Block {
         this.y = this.startY;
         this.velocityX = 0;
         this.velocityY = 0;
-        this.nextDirection = null;
+    }
+
+    draw() {
+        ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
     }
 }
+
+class Wall extends GameObject {
+    constructor(image, x, y, width, height) {
+        super(image, x, y, width, height);
+    }
+}
+
+class Ghost extends GameObject {
+    constructor(image, x, y, width, height, color) {
+        super(image, x, y, width, height);
+        this.color = color;
+        this.direction = this.getRandomDirection();
+        this.isScared = false;
+        this.isReturning = false;
+        this.speed = gameState.ghostSpeed;
+        this.updateVelocity();
+    }
+
+    getRandomDirection() {
+        const directions = ['U', 'D', 'L', 'R'];
+        return directions[Math.floor(Math.random() * directions.length)];
+    }
+
+    updateDirection(direction) {
+        this.direction = direction;
+        this.updateVelocity();
+    }
+
+    updateVelocity() {
+        switch(this.direction) {
+            case 'U':
+                this.velocityX = 0;
+                this.velocityY = -this.speed;
+                break;
+            case 'D':
+                this.velocityX = 0;
+                this.velocityY = this.speed;
+                break;
+            case 'L':
+                this.velocityX = -this.speed;
+                this.velocityY = 0;
+                break;
+            case 'R':
+                this.velocityX = this.speed;
+                this.velocityY = 0;
+                break;
+        }
+    }
+
+    draw() {
+        let img = this.image;
+        if (this.isScared) {
+            img = gameState.powerPelletTimer > 2 ? assets.scaredGhost : assets.scaredGhostEnding;
+        }
+        ctx.drawImage(img, this.x, this.y, this.width, this.height);
+    }
+}
+
+class Pacman extends GameObject {
+    constructor(image, x, y, width, height) {
+        super(image, x, y, width, height);
+        this.speed = gameState.pacmanSpeed;
+    }
+
+    draw() {
+        if (gameState.animationFrame % gameState.pacmanAnimationSpeed === 0) {
+            gameState.pacmanMouthOpen = !gameState.pacmanMouthOpen;
+        }
+        
+        if (gameState.pacmanMouthOpen) {
+            ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+        } else {
+            // Draw Pacman with mouth closed (circle)
+            ctx.beginPath();
+            ctx.fillStyle = 'yellow';
+            ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width/2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+// Game functions
+function loadMap() {
+    gameState.walls.clear();
+    gameState.foods.clear();
+    gameState.powerPellets.clear();
+    gameState.ghosts.clear();
+
+    for (let r = 0; r < rowCount; r++) {
+        for (let c = 0; c < columnCount; c++) {
+            const row = tileMap[r];
+            const tileMapChar = row[c];
+            const x = c * tileSize;
+            const y = r * tileSize;
+
+            if (tileMapChar === 'X') {
+                gameState.walls.add(new Wall(assets.wall, x, y, tileSize, tileSize));
+            }
+            else if (tileMapChar === 'b') {
+                gameState.ghosts.add(new Ghost(assets.blueGhost, x, y, tileSize, tileSize, 'blue'));
+            }
+            else if (tileMapChar === 'o') {
+                gameState.ghosts.add(new Ghost(assets.orangeGhost, x, y, tileSize, tileSize, 'orange'));
+            }
+            else if (tileMapChar === 'p') {
+                gameState.ghosts.add(new Ghost(assets.pinkGhost, x, y, tileSize, tileSize, 'pink'));
+            }
+            else if (tileMapChar === 'r') {
+                gameState.ghosts.add(new Ghost(assets.redGhost, x, y, tileSize, tileSize, 'red'));
+            }
+            else if (tileMapChar === 'P') {
+                gameState.pacman = new Pacman(assets.pacmanRight, x, y, tileSize, tileSize);
+            }
+            else if (tileMapChar === ' ') {
+                gameState.foods.add(new GameObject(assets.pellet, x + 10, y + 10, 12, 12));
+            }
+            else if (tileMapChar === 'O') {
+                gameState.powerPellets.add(new GameObject(assets.powerPellet, x + 4, y + 4, 24, 24));
+            }
+        }
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw walls
+    gameState.walls.forEach(wall => wall.draw());
+    
+    // Draw food
+    gameState.foods.forEach(food => food.draw());
+    gameState.powerPellets.forEach(pellet => pellet.draw());
+    
+    // Draw ghosts
+    gameState.ghosts.forEach(ghost => ghost.draw());
+    
+    // Draw pacman
+    if (gameState.pacman) gameState.pacman.draw();
+    
+    // Draw UI
+    ctx.fillStyle = 'white';
+    ctx.font = '20px Arial';
+    ctx.fillText(`SCORE: ${gameState.score}`, 10, 25);
+    ctx.fillText(`LIVES: ${gameState.lives}`, canvas.width - 120, 25);
+    ctx.fillText(`LEVEL: ${gameState.level}`, 10, 50);
+    
+    if (gameState.powerPelletActive) {
+        ctx.fillText(`POWER: ${Math.ceil(gameState.powerPelletTimer)}`, canvas.width - 120, 50);
+    }
+}
+
+function move() {
+    if (gameState.gameOver) return;
+    
+    // Move pacman
+    if (gameState.pacman) {
+        const prevX = gameState.pacman.x;
+        const prevY = gameState.pacman.y;
+        
+        gameState.pacman.x += gameState.pacman.velocityX;
+        gameState.pacman.y += gameState.pacman.velocityY;
+        
+        // Wall collision
+        let hitWall = false;
+        gameState.walls.forEach(wall => {
+            if (isColliding(gameState.pacman, wall)) {
+                hitWall = true;
+            }
+        });
+        
+        if (hitWall) {
+            gameState.pacman.x = prevX;
+            gameState.pacman.y = prevY;
+        }
+        
+        // Screen wrapping
+        if (gameState.pacman.x < -gameState.pacman.width) {
+            gameState.pacman.x = canvas.width;
+        } else if (gameState.pacman.x > canvas.width) {
+            gameState.pacman.x = -gameState.pacman.width;
+        }
+    }
+    
+    // Move ghosts
+    gameState.ghosts.forEach(ghost => {
+        const prevX = ghost.x;
+        const prevY = ghost.y;
+        
+        ghost.x += ghost.velocityX;
+        ghost.y += ghost.velocityY;
+        
+        // Wall collision
+        let hitWall = false;
+        gameState.walls.forEach(wall => {
+            if (isColliding(ghost, wall)) {
+                hitWall = true;
+            }
+        });
+        
+        if (hitWall) {
+            ghost.x = prevX;
+            ghost.y = prevY;
+            ghost.updateDirection(ghost.getRandomDirection());
+        }
+        
+        // Ghost-pacman collision
+        if (gameState.pacman && isColliding(ghost, gameState.pacman)) {
+            if (gameState.powerPelletActive) {
+                // Eat ghost
+                ghost.reset();
+                gameState.score += 200 * gameState.ghostEatenMultiplier;
+                gameState.ghostEatenMultiplier *= 2;
+            } else {
+                // Lose life
+                gameState.lives--;
+                if (gameState.lives <= 0) {
+                    gameOver();
+                } else {
+                    resetPositions();
+                }
+            }
+        }
+    });
+    
+    // Food collection
+    gameState.foods.forEach(food => {
+        if (gameState.pacman && isColliding(gameState.pacman, food)) {
+            gameState.foods.delete(food);
+            gameState.score += 10;
+        }
+    });
+    
+    // Power pellet collection
+    gameState.powerPellets.forEach(pellet => {
+        if (gameState.pacman && isColliding(gameState.pacman, pellet)) {
+            gameState.powerPellets.delete(pellet);
+            gameState.score += 50;
+            activatePowerPellet();
+        }
+    });
+    
+    // Power pellet timer
+    if (gameState.powerPelletActive) {
+        gameState.powerPelletTimer -= 1/60; // Assuming 60fps
+        if (gameState.powerPelletTimer <= 0) {
+            gameState.powerPelletActive = false;
+            gameState.ghostEatenMultiplier = 1;
+            gameState.ghosts.forEach(ghost => ghost.isScared = false);
+        }
+    }
+    
+    // Level completion
+    if (gameState.foods.size === 0 && gameState.powerPellets.size === 0) {
+        levelComplete();
+    }
+    
+    gameState.animationFrame++;
+}
+
+function isColliding(a, b) {
+    return a.x < b.x + b.width &&
+           a.x + a.width > b.x &&
+           a.y < b.y + b.height &&
+           a.y + a.height > b.y;
+}
+
+function activatePowerPellet() {
+    gameState.powerPelletActive = true;
+    gameState.powerPelletTimer = gameState.powerPelletDuration;
+    gameState.ghosts.forEach(ghost => ghost.isScared = true);
+}
+
+function resetPositions() {
+    if (gameState.pacman) gameState.pacman.reset();
+    gameState.ghosts.forEach(ghost => {
+        ghost.reset();
+        ghost.updateDirection(ghost.getRandomDirection());
+    });
+}
+
+function levelComplete() {
+    gameState.level++;
+    gameState.ghostSpeed = Math.min(gameState.ghostSpeed + 0.5, tileSize / 4);
+    gameState.pacmanSpeed = Math.min(gameState.pacmanSpeed + 0.5, tileSize / 4);
+    loadMap();
+    resetPositions();
+}
+
+function gameOver() {
+    gameState.gameOver = true;
+    alert(`Game Over! Your score: ${gameState.score}`);
+    resetGame();
+}
+
+function resetGame() {
+    gameState.score = 0;
+    gameState.lives = 3;
+    gameState.level = 1;
+    gameState.gameOver = false;
+    gameState.ghostSpeed = tileSize / 8;
+    gameState.pacmanSpeed = tileSize / 6;
+    loadMap();
+    resetPositions();
+}
+
+function startGame() {
+    resetGame();
+    gameState.gameStarted = true;
+    gameLoop();
+}
+
+function gameLoop() {
+    if (!gameState.gameStarted || gameState.gameOver) return;
+    
+    move();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+// Controls
+function movePacman(e) {
+    if (!gameState.pacman || gameState.gameOver || !gameState.gameStarted) return;
+    
+    let direction = null;
+    let image = assets.pacmanRight;
+    
+    switch(e.code) {
+        case "ArrowUp":
+        case "KeyW":
+            direction = 'U';
+            image = assets.pacmanUp;
+            break;
+        case "ArrowDown":
+        case "KeyS":
+            direction = 'D';
+            image = assets.pacmanDown;
+            break;
+        case "ArrowLeft":
+        case "KeyA":
+            direction = 'L';
+            image = assets.pacmanLeft;
+            break;
+        case "ArrowRight":
+        case "KeyD":
+            direction = 'R';
+            image = assets.pacmanRight;
+            break;
+    }
+    
+    if (direction) {
+        gameState.pacman.image = image;
+        gameState.currentDirection = direction;
+        
+        // Check if direction is possible
+        const tempX = gameState.pacman.x;
+        const tempY = gameState.pacman.y;
+        
+        // Simulate move
+        switch(direction) {
+            case 'U': gameState.pacman.y -= gameState.pacmanSpeed; break;
+            case 'D': gameState.pacman.y += gameState.pacmanSpeed; break;
+            case 'L': gameState.pacman.x -= gameState.pacmanSpeed; break;
+            case 'R': gameState.pacman.x += gameState.pacmanSpeed; break;
+        }
+        
+        let canMove = true;
+        gameState.walls.forEach(wall => {
+            if (isColliding(gameState.pacman, wall)) {
+                canMove = false;
+            }
+        });
+        
+        // Revert simulation
+        gameState.pacman.x = tempX;
+        gameState.pacman.y = tempY;
+        
+        if (canMove) {
+            gameState.pacman.velocityX = 0;
+            gameState.pacman.velocityY = 0;
+            
+            switch(direction) {
+                case 'U': gameState.pacman.velocityY = -gameState.pacmanSpeed; break;
+                case 'D': gameState.pacman.velocityY = gameState.pacmanSpeed; break;
+                case 'L': gameState.pacman.velocityX = -gameState.pacmanSpeed; break;
+                case 'R': gameState.pacman.velocityX = gameState.pacmanSpeed; break;
+            }
+        } else {
+            gameState.nextDirection = direction;
+        }
+    }
+}
+
+// Initialize game
+loadMap();
+
+// Start game automatically for demo purposes
+// In a real game, you'd want a start button
+setTimeout(startGame, 1000);
